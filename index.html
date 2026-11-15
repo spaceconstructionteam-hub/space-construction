@@ -1,0 +1,1205 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Space Construction</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+:root{color-scheme:dark;--bg:#0b0d2a;--panel:#161a4a;--edge:#6f7bff;--ink:#f4f1ea;--dim:#a9b0e8;--ok:#7be8ff;--warn:#ffdf00;--bad:#ff6b6b;--green:#009c3b}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"Courier New",monospace}
+body{min-height:100vh;background:
+ radial-gradient(1px 1px at 10% 20%,#fff,transparent),radial-gradient(1px 1px at 70% 10%,#8fa8ff,transparent),
+ radial-gradient(1px 1px at 40% 60%,#fff,transparent),radial-gradient(1px 1px at 85% 70%,#ffe9a8,transparent),
+ radial-gradient(1px 1px at 25% 85%,#fff,transparent),var(--bg)}
+.wrap{max-width:980px;margin:0 auto;padding-block:14px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1{font-size:clamp(20px,4vw,30px);margin:6px 0 2px;color:var(--warn);letter-spacing:1px;text-shadow:3px 3px 0 #000}
+.sub{color:var(--dim);margin:0 0 10px;font-size:14px}
+.tag{display:inline-block;background:var(--green);color:#fff;padding:2px 8px;font-weight:bold;font-size:12px;box-shadow:2px 2px 0 #000}
+.box{background:var(--panel);border:4px solid var(--edge);box-shadow:4px 4px 0 #000;padding:12px;margin-bottom:12px}
+.goal{border-color:var(--warn)}
+.goal b{color:var(--warn)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:760px){.grid{grid-template-columns:1fr}}
+canvas{image-rendering:pixelated;width:100%;display:block;background:#10143c}
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.stat{flex:1;min-width:120px;background:#0b0d2a;border:3px solid var(--edge);padding:6px 8px}
+.stat small{display:block;color:var(--dim);font-size:11px;text-transform:uppercase}
+.stat strong{font-size:22px}
+.bubble{min-height:44px;margin-top:8px;background:#fff;color:#1b1f3b;border:3px solid #000;padding:6px 10px;font-size:13px;position:relative}
+.bubble:before{content:"";position:absolute;top:-12px;left:22px;border:6px solid transparent;border-bottom-color:#000}
+.bench{background:linear-gradient(#5a4a3a 0 8px,#3b3128 8px);border-color:#a98b6a}
+.bench h2{margin:0 0 8px;font-size:16px;color:#ffe2b0}
+.card{display:grid;grid-template-columns:48px 1fr;gap:10px;background:#1d2260;border:3px solid var(--edge);padding:8px;margin-bottom:10px;cursor:pointer;width:100%;text-align:left;color:inherit;font:inherit;box-shadow:3px 3px 0 #000}
+.card:hover:not(:disabled){background:#252b7a}
+.card.on{border-color:var(--ok);background:#173a6b}
+.card:disabled,.card.lock{opacity:.6;cursor:not-allowed;border-color:#555a88}
+.card canvas{width:48px;height:48px;background:#0b0d2a;border:2px solid var(--edge)}
+.card h3{margin:0;font-size:15px}
+.card .cost{color:var(--warn);font-weight:bold}
+.card p{margin:3px 0;font-size:12.5px;color:var(--dim)}
+.card .after{font-size:12.5px}
+.card .after.neg{color:var(--bad)}
+.card .after.pos{color:var(--ok)}
+.btns{display:flex;gap:10px;flex-wrap:wrap}
+button.act{font:bold 15px "Courier New",monospace;padding:10px 16px;border:4px solid #000;background:var(--warn);color:#000;cursor:pointer;box-shadow:3px 3px 0 #000}
+button.act.sec{background:#9fb0ff}
+button.act:disabled{background:#555a88;color:#aaa;cursor:not-allowed}
+#msg{min-height:18px;font-size:13px;color:var(--warn);margin-top:8px}
+.foot{font-size:11.5px;color:var(--dim)}
+
+.stage{position:relative}
+.cap{position:absolute;left:8px;top:8px;background:rgba(0,0,0,.65);color:var(--warn);font-weight:bold;font-size:12px;padding:3px 8px;border:2px solid var(--warn)}
+.ctrl{border-color:var(--ok)}
+.ctrl h2{margin:0 0 8px;font-size:16px;color:var(--ok)}
+.steps{list-style:none;margin:0 0 10px;padding:0;display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.steps li{font-size:11.5px;text-align:center;padding:6px 2px;border:3px solid #555a88;color:#8a90c8;background:#0b0d2a}
+.steps li.active{border-color:var(--warn);color:var(--warn)}
+.steps li.done{border-color:var(--ok);color:var(--ok)}
+.alert{background:#0b0d2a;border:3px solid var(--ok);padding:8px 10px;font-size:13.5px;min-height:62px}
+.alert b{color:var(--ok)}
+.alert.hot{border-color:var(--bad);animation:blink .7s steps(2) infinite}
+@keyframes blink{50%{background:#3a1020}}
+.contact{margin-top:10px;margin-bottom:12px}
+.contact .row{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--dim)}
+.contact strong{font-size:26px;color:var(--ink)}
+.bar{position:relative;height:16px;background:#0b0d2a;border:3px solid var(--edge);margin-top:4px}
+.bar i{display:block;height:100%;background:var(--ok);position:relative;z-index:1;opacity:.85}
+.bar b.win{position:absolute;top:0;bottom:0;background:rgba(255,223,0,.45);z-index:2}
+.bar u{z-index:3}
+.bar u{position:absolute;top:-6px;bottom:-6px;width:3px;background:var(--warn);text-decoration:none}
+.bar span{position:absolute;top:18px;font-size:10.5px;color:var(--warn);transform:translateX(-50%);white-space:nowrap}
+.decide{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:0}
+@media(max-width:520px){.decide{grid-template-columns:1fr}}
+button.act.go{background:var(--ok)}
+button.act.stay{background:#ff9a8a}
+button.act.warn{animation:pulse .5s steps(2) infinite}
+@keyframes pulse{50%{background:#fff;transform:scale(1.04)}}
+.log{margin:10px 0 0;padding:8px;background:#0b0d2a;border:3px solid #555a88;font-size:12px;color:var(--dim);min-height:70px;max-height:110px;overflow:auto}
+.log div{margin:2px 0}
+
+.steps{grid-template-columns:repeat(3,1fr)!important}
+.res h2,.nasa h2{margin:0 0 8px;font-size:16px}
+.res{border-color:var(--warn)}.res h2{color:var(--warn)}
+.nasa{border-color:var(--ok)}.nasa h2{color:var(--ok)}
+.badge{display:inline-block;font-weight:bold;font-size:18px;padding:6px 12px;border:4px solid #000;box-shadow:3px 3px 0 #000;margin-bottom:8px}
+.badge.ok{background:#7be8a0;color:#06310f}.badge.bad{background:#ff9a8a;color:#3a0a0a}
+.res p,.nasa p{margin:6px 0;font-size:13.5px;line-height:1.45}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+.kv div{background:#0b0d2a;border:3px solid var(--edge);padding:6px 8px}
+.kv small{display:block;color:var(--dim);font-size:10.5px;text-transform:uppercase}
+.kv strong{font-size:22px;display:block}.kv strong.sm{font-size:12.5px;line-height:1.3}
+.kv em{font-style:normal;color:var(--dim);font-size:10.5px}
+.chips{list-style:none;margin:8px 0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+@media(max-width:520px){.chips,.kv{grid-template-columns:1fr}}
+.chips li{background:#0b0d2a;border:3px solid #555a88;padding:5px 8px;font-size:12px;color:var(--dim)}
+.chips b{display:block;color:var(--ok)}
+.note{color:var(--dim);border-left:4px solid var(--warn);padding-left:8px}
+.src a{color:var(--ok);word-break:break-word}
+.facts{margin:8px 0;padding-left:18px;font-size:13px;line-height:1.45}
+.facts li{margin:4px 0}.facts b{color:var(--warn)}
+.rule{background:#3a1020;border:3px solid var(--bad);padding:8px 10px;margin:0 0 10px;font-size:13.5px;line-height:1.4}
+.rule b{color:var(--warn)}
+.limit{margin-top:8px;padding:8px 10px;border:3px solid var(--ok);background:#0b0d2a;display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px;font-weight:bold}
+.limit strong{font-size:34px;line-height:1;min-width:92px;text-align:right}
+.limit.mid{border-color:var(--warn)}.limit.mid strong{color:var(--warn)}
+.limit.hot{border-color:var(--bad);background:#3a1020;animation:blink .5s steps(2) infinite}.limit.hot strong{color:var(--bad)}
+.bar u.lim{background:#ff4d4d;width:4px}
+.bar span.lim{top:32px;color:#ff6b6b;font-weight:bold}
+.pilots{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin:0 0 10px}
+.pilot{background:#1d2260;border:3px solid var(--edge);padding:4px 2px;color:inherit;font:inherit;cursor:pointer;text-align:center;box-shadow:2px 2px 0 #000}
+.pilot.on{border-color:var(--warn);background:#4a4a14}
+.pilot canvas{width:40px;height:40px;background:none!important;display:block;margin:0 auto}
+.pilot small{display:block;font-size:9.5px;line-height:1.1;margin-top:2px}
+.plabel{font-size:12px;color:#ffe2b0;margin:0 0 4px;font-weight:bold}
+@media(max-width:520px){.pilots{grid-template-columns:repeat(3,1fr)}}
+.count{position:absolute;inset:0;display:flex;align-items:flex-start;justify-content:center;padding-top:6px;font:bold 72px "Courier New",monospace;color:var(--warn);text-shadow:5px 5px 0 #000;pointer-events:none}
+.legend{margin:46px 0 0;font-size:11.5px;color:var(--dim);line-height:1.4}
+.mini{display:none}
+#mass.max{color:#7be8a0;animation:blink .5s steps(2) infinite}
+@media(max-width:760px){
+  #decide{position:fixed;left:0;right:0;bottom:0;margin:0;z-index:50;padding:8px 12px calc(10px + env(safe-area-inset-bottom,0px));background:#0b0d2a;border-top:4px solid var(--warn);grid-template-columns:1fr 1fr}
+  #decide .mini{display:block;grid-column:1/-1;text-align:center;font-weight:bold;font-size:15px;color:var(--warn)}
+  body{padding-bottom:130px}
+}
+.gobox{margin-top:10px;padding:10px;border:3px solid var(--ok);background:#0b0d2a}
+.gohead{font-size:12px;color:var(--dim);margin-bottom:8px;font-weight:bold}
+.route{font-size:16px;font-weight:bold;color:var(--ok);margin-top:10px}
+.sigtimer{font-size:44px;font-weight:bold;color:var(--warn);line-height:1.1;letter-spacing:2px}
+.signote{margin:6px 0 0;font-size:12.5px;color:var(--dim)}
+.auto{background:#0b0d2a;border-left:4px solid var(--ok);padding:8px 10px;margin:8px 0;font-size:13px;line-height:1.45}
+.auto a{color:var(--ok)}
+.screen{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:auto;transition:opacity .6s}
+.screen.fade{opacity:0;pointer-events:none}
+#title{background:radial-gradient(ellipse at 50% 0%,#1d2260 0%,#0b0d2a 60%,#05061a 100%);padding:16px}
+#title:before{content:"";position:absolute;inset:0;pointer-events:none;background:
+  radial-gradient(1.5px 1.5px at 12% 18%,#fff,transparent),radial-gradient(1.5px 1.5px at 78% 12%,#8fa8ff,transparent),
+  radial-gradient(1.5px 1.5px at 35% 70%,#fff,transparent),radial-gradient(1.5px 1.5px at 90% 62%,#ffe9a8,transparent),
+  radial-gradient(1.5px 1.5px at 55% 30%,#fff,transparent),radial-gradient(1.5px 1.5px at 8% 85%,#8fa8ff,transparent)}
+.tbox{position:relative;width:100%;max-width:860px;text-align:center}
+.thead{margin:0;font-size:clamp(34px,8vw,76px);line-height:.95;color:var(--warn);letter-spacing:3px;text-shadow:5px 5px 0 #000,0 0 22px rgba(255,223,0,.25)}
+.tsub{margin:10px 0 12px;color:var(--ok);font-weight:bold;font-size:clamp(13px,2.4vw,19px);letter-spacing:1px}
+#tcv{width:100%;max-width:720px;margin:0 auto;border:4px solid var(--edge);box-shadow:6px 6px 0 #000}
+.tmotto{margin:12px auto 0;max-width:640px;color:var(--dim);font-size:clamp(12px,2.2vw,15px);line-height:1.4}
+.playbtn{margin-top:14px;font:bold clamp(22px,4vw,32px) "Courier New",monospace;letter-spacing:4px;color:#000;background:var(--warn);border:5px solid #000;padding:12px 44px;cursor:pointer;box-shadow:5px 5px 0 #000,0 0 0 4px var(--warn);animation:pulse2 1.2s steps(2) infinite}
+.playbtn:hover{background:#fff}
+.playbtn:focus-visible{outline:4px solid #fff;outline-offset:4px}
+@keyframes pulse2{50%{transform:translateY(-3px)}}
+.thint{margin:12px 0 0;color:var(--dim);font-size:12px}
+#outro{background:#000;z-index:110;animation:fadein 1s}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.outro{margin:0;padding:0 16px;color:#ffdf00;font:bold clamp(24px,6vw,52px) "Courier New",monospace;letter-spacing:3px;text-align:center;line-height:1.3}
+.outro:after{content:"_";animation:blink2 1s steps(2) infinite}
+@keyframes blink2{50%{opacity:0}}
+#outroBack{margin-top:36px;background:#000;color:#ffdf00;border:3px solid #ffdf00;box-shadow:none;font-size:14px}
+@media (prefers-reduced-motion:reduce){.playbtn,.outro:after{animation:none}}
+[hidden]{display:none!important}
+.tbtns{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-top:14px}
+.tbtns .playbtn{margin-top:0;font-size:clamp(16px,3vw,24px);padding:10px 26px;letter-spacing:2px;line-height:1.2}
+.tbtns .playbtn small{display:block;font-size:11px;letter-spacing:1px;margin-top:4px}
+.playbtn.m2b{background:var(--ok);box-shadow:5px 5px 0 #000,0 0 0 4px var(--ok);animation-delay:-.6s}
+.playbtn.m2b:hover{background:#fff}
+.ibar{height:10px;background:#0b0d2a;border:2px solid var(--edge);margin-top:4px}
+.ibar i{display:block;height:100%;width:100%;background:#7be8a0;transition:width .5s,background .5s}
+.pips2{list-style:none;margin:0 0 10px;padding:0;display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.pips2 li{font-size:12px;text-align:center;padding:6px 2px;border:3px solid #555a88;color:#8a90c8;background:#0b0d2a}
+.pips2 li.active{border-color:var(--warn);color:var(--warn)}
+.pips2 li.ok{border-color:#7be8a0;color:#7be8a0}
+.pips2 li.bad,.pips2 li.skip{border-color:var(--bad);color:var(--bad)}
+button.act.opt{display:block;width:100%;text-align:left;margin:0 0 8px;font-weight:normal;font-size:13.5px;line-height:1.35}
+.m2pn h2{margin:0 0 8px;font-size:16px;color:var(--ok)}
+.m2pn p{margin:6px 0;font-size:13.5px;line-height:1.45}
+.m2res{margin-top:10px;padding:8px 10px;border:3px solid var(--ok);background:#0b0d2a;font-size:13.5px;line-height:1.45}
+.oc{font-weight:normal;font-size:12.5px;color:#1b1f3b;line-height:1.35;display:inline-block;margin-top:3px}
+button.act.opt:disabled .oc{color:#ffd9d2}
+details.ev{margin-top:10px;font-size:13px;line-height:1.45}
+details.ev summary{cursor:pointer;color:var(--ok);font-weight:bold}
+details.ev p{margin:6px 0}
+.src a{color:var(--ok);word-break:break-word}
+.m2res.bad{border-color:var(--bad);background:#3a1020}
+.m2res b.k{color:var(--warn)}
+</style>
+<!-- AI assistance: Anthropic Claude helped write and debug this page. OpenAI ChatGPT helped with the Mission 2 design specification and source documentation. Mission ideas, choices and rules come from the team. -->
+
+<div class="wrap" id="m1wrap">
+  <span class="tag" id="tag">STEP 1 OF 3 - ASSEMBLY</span>
+  <h1>SPACE CONSTRUCTION</h1>
+  <p class="sub">BRAZIOSIRIS-REx - Bennu Sample Return</p>
+
+  <div class="box goal"><b>Mission goal:</b> Bring a sample from Bennu back to Earth.
+  You have <b>100 credits</b>. Choose up to <b>two</b> pieces of equipment for the probe.</div>
+
+  <div class="grid">
+    <div>
+      <div class="box">
+        <div class="stage"><canvas id="probe" width="120" height="90" aria-label="The probe on the assembly bench"></canvas>
+        <canvas id="flight" width="240" height="135" hidden aria-label="The probe flying to asteroid Bennu"></canvas>
+        <div class="cap" id="cap" hidden></div>
+        <div class="count" id="count" hidden></div></div>
+        <div class="bubble" id="bubble"></div>
+        <div class="stats">
+          <div class="stat"><small>Credits left</small><strong id="cred">100</strong></div>
+          <div class="stat"><small id="fuelLbl">Fuel at launch</small><strong id="fuel">3</strong></div>
+          <div class="stat"><small>Items</small><strong id="cnt">0/2</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="box bench" id="benchPanel">
+        <h2>ASSEMBLY BENCH - pick your equipment</h2>
+        <p class="plabel">CHOOSE YOUR PILOT (rides inside the probe)</p>
+        <div class="pilots" id="pilots"></div>
+        <div class="rule"><b>THE RULE:</b> At Bennu you must <b>BACK AWAY before 6.5 seconds of contact</b>. If you stay longer, the probe sinks into the loose surface and gets stuck. Time slows down near the limit (a game rule) to give you a moment to react.</div>
+        <div id="cards"></div>
+        <div class="btns">
+          <button class="act sec" id="reset">Clear bench</button>
+          <button class="act sec" id="soundBtn">Sound: ON</button>
+          <button class="act" id="launch">Launch</button>
+        </div>
+        <div id="msg" role="status" aria-live="polite"></div>
+      </div>
+      <div class="box ctrl" id="ctrlPanel" hidden>
+        <h2 id="ctrlTitle">MISSION CONTROL</h2>
+        <ol class="steps" id="steps"><li>Launch</li><li>GO + Approach</li><li>Touch</li><li>Decision</li><li>Return</li><li>Lab</li></ol>
+        <div class="alert" id="alert" role="status" aria-live="polite"></div>
+        <div class="gobox" id="goBox" hidden>
+          <div class="gohead">EARTH CONTROL CENTER</div>
+          <button class="act go" id="sendGo">Send GO</button>
+          <div id="sigWrap" hidden>
+            <div class="route">Earth &rarr; Spacecraft</div>
+            <div class="sigtimer" id="sigTimer" aria-live="off">18:30</div>
+            <p class="signote">Real one-way signal travel time: about 18 min 30 s. Playback accelerated.</p>
+          </div>
+        </div>
+        <div class="contact" id="contact" hidden>
+          <div class="limit" id="limit"><span>BACK AWAY BEFORE THE TIME LIMIT (6.5 s) OR THE PROBE GETS STUCK</span><strong><span id="left">6.5</span> s</strong></div>
+          <div class="row" style="margin-top:8px"><span>CONTACT TIME AT NIGHTINGALE</span><strong><span id="ct">0.0</span> s</strong></div>
+          <div class="row"><span>SAMPLE COLLECTED (goal: 60 g or more)</span><strong id="mass" style="font-size:20px">0 g</strong></div>
+          <div class="bar"><b class="win" style="left:14.29%;width:78.57%"></b><i id="ctbar" style="width:0%"></i><s id="marks" style="display:contents;text-decoration:none"></s></div>
+          <p class="legend">Weights (60 g, 70.3 g, 121.6 g) are NASA numbers. The seconds on the bar and the 6.5 s limit are game rules. Time slows down from 5.5 s to give you a moment to react.</p>
+        </div>
+        <div class="decide" id="decide" hidden>
+          <div class="mini" id="mini"></div>
+          <button class="act go" id="away">Back away</button>
+          <button class="act stay" id="stay">Stay longer</button>
+        </div>
+        <div class="log" id="log" aria-label="Mission log"></div>
+        <div class="btns" style="margin-top:10px"><button class="act" id="notify" hidden>Notify Mission Control</button></div>
+      </div>
+
+      <div id="resultPanel" hidden>
+        <div class="box res">
+          <h2>YOUR MISSION</h2>
+          <div class="badge" id="badge"></div>
+          <p id="why"></p>
+          <div class="kv">
+            <div><small>Credits left</small><strong id="rCred"></strong><em>simulation value</em></div>
+            <div><small>Fuel left</small><strong id="rFuel"></strong><em>simulation value</em></div>
+            <div><small>Contact time</small><strong id="rCt"></strong><em>at Nightingale (NASA: 6 s)</em></div>
+            <div><small>Sample collected</small><strong id="rMass" class="sm" style="font-size:20px"></strong><em id="rMassCap">real NASA weight</em></div>
+            <div><small>NASA's real sample</small><strong>121.6 g</strong><em>real mission, needed 60 g</em></div>
+            <div><small>Equipment</small><strong id="rItems" class="sm"></strong><em>your choices</em></div>
+          </div>
+          <div class="btns"><button class="act" id="again">Play again</button><button class="act sec" id="nextBtn">Continue</button></div>
+        </div>
+        <div class="box nasa">
+          <h2>WHAT NASA DID</h2>
+          <p class="auto">At Bennu, OSIRIS-REx executed the sampling sequence autonomously. A signal from Earth took about 18.5 minutes to reach the spacecraft. <a href="https://www.nasa.gov/missions/nasas-osiris-rex-begins-its-countdown-to-tag/" target="_blank" rel="noopener">Source: NASA</a></p>
+          <p>This is what the real mission did, step by step. These numbers come from NASA:</p>
+          <ul class="facts">
+            <li><b>Sept 8, 2016</b> OSIRIS-REx launched on an Atlas V 411 rocket.</li>
+            <li><b>Oct 20, 2020</b> The sampler touched asteroid Bennu at the Nightingale site.</li>
+            <li><b>1 s after contact</b> It released a burst of nitrogen gas that stirred up loose rock and dust into the sampler head (TAGSAM).</li>
+            <li><b>First 3 s</b> NASA’s initial data indicate that sampling took about five of the six seconds of contact, with most of the material collected in the first three seconds.</li>
+            <li><b>6 s after contact</b> It fired its thrusters to back away, while still sinking into Bennu.</li>
+            <li><b>30 s after contact</b> It shut off its thrusters and drifted away with the sample.</li>
+            <li><b>70.3 g</b> The first weight NASA measured (October 2023), already above the 60 g requirement.</li>
+            <li><b>121.6 g</b> The final sample returned to Earth. The mission needed at least 60 g, so it collected more than double. It is the largest asteroid sample ever collected in space.</li>
+            <li><b>About US$ 800 million</b> The mission cost, not counting the launch vehicle.</li>
+          </ul>
+          <p>NASA describes a science mission as four segments. You played all of them:</p>
+          <ul class="chips">
+            <li><b>Launch</b> your launch</li>
+            <li><b>Space</b> the trip and the touch at Bennu</li>
+            <li><b>Ground</b> Mission Control messages</li>
+            <li><b>User</b> the scientists and the lab that open the capsule</li>
+          </ul>
+          <p class="note">BRAZIOSIRIS-REx is a fictional mission inspired by OSIRIS-REx. Credits, prices and fuel points are invented rules for this simulation. The game also has to pick a limit for staying on the surface (6.5 s), and it decides at which second you reach each real weight (3 s, 4.5 s and 6 s). Those are game rules. The weights themselves (60 g, 70.3 g, 121.6 g) are NASA numbers.</p>
+          <p class="src"><b>Sources</b><br>
+            <a href="https://www.nasa.gov/missions/nasas-osiris-rex-begins-its-countdown-to-tag/" target="_blank" rel="noopener">NASA: OSIRIS-REx Begins its Countdown to TAG (signal time and autonomy)</a><br>
+            <a href="https://www.nasa.gov/wp-content/uploads/2025/04/250323-design-and-develop-science-mission.pdf" target="_blank" rel="noopener">NASA: Design and Develop Science Missions (the four mission segments)</a><br>
+            <a href="https://www.nasa.gov/solar-system/osiris-rex-tags-surface-of-asteroid-bennu/" target="_blank" rel="noopener">NASA: OSIRIS-REx tags surface of asteroid Bennu (the sample collection)</a><br>
+            <a href="https://svs.gsfc.nasa.gov/vis/a010000/a014100/a014179/TAG_Science_Transcript.html" target="_blank" rel="noopener">NASA SVS: OSIRIS-REx Sample Collection Science Results, transcript (the touch-and-go timeline)</a><br>
+            <a href="https://www.nasa.gov/missions/surprise-again-asteroid-bennu-reveals-its-surface-is-like-a-plastic-ball-pit/" target="_blank" rel="noopener">NASA: Why the probe sank into Bennu (the loose surface)</a><br>
+            <a href="https://science.nasa.gov/blogs/osiris-rex/2024/02/15/nasa-announces-osiris-rex-bulk-sample-mass/" target="_blank" rel="noopener">NASA: OSIRIS-REx Bulk Sample Mass (121.6 g)</a><br>
+            <a href="https://science.nasa.gov/blogs/osiris-rex/2023/10/20/nasas-osiris-rex-achieves-sample-mass-milestone/" target="_blank" rel="noopener">NASA: OSIRIS-REx achieves sample mass milestone (70.3 g)</a><br>
+            <a href="https://nssdc.gsfc.nasa.gov/planetary/text/osiris-rex_pr_20110525.txt" target="_blank" rel="noopener">NASA: new asteroid mission selected, 2011 release (cost)</a><br>
+            <a href="https://svs.gsfc.nasa.gov/12716/" target="_blank" rel="noopener">NASA SVS: OSIRIS-REx Launch Footage (Atlas V 411, Sept 8, 2016)</a></p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <p class="foot">Credits, prices and fuel points are invented rules for this simulation.</p>
+</div>
+
+<div class="wrap" id="m2wrap" hidden>
+  <span class="tag" id="m2tag">MISSION 2 - STEP 1 OF 3 - EQUIPMENT</span>
+  <h1>SPACE CONSTRUCTION</h1>
+  <p class="sub">LUNAR HEDGEHOG - Helium-3 Survey</p>
+  <div class="box goal"><b>Mission goal:</b> Send the full flyby record, collect a sample at the target site and bring it back to Earth for laboratory confirmation. You manage <b>fuel</b>, <b>energy</b> and <b>safety margin</b> through <b>6 phases</b>. Every choice has a cost.</div>
+  <div class="grid">
+    <div>
+      <div class="box">
+        <div class="stage"><canvas id="m2cv" width="240" height="135" aria-label="Mission 2 scene"></canvas>
+        <div class="cap" id="m2cap">EQUIPMENT BENCH</div></div>
+        <div class="bubble" id="m2bub"></div>
+        <div class="stats" id="m2stats"></div>
+      </div>
+    </div>
+    <div id="m2right"></div>
+  </div>
+  <p class="foot">Mission 2 is a fictional expedition inspired by real NASA operations. Budget, equipment, fuel, energy, safety margin, landing sites and sensor warnings are game values. AI assistance: OpenAI ChatGPT helped with the Mission 2 design specification and source documentation; Claude helped write the code. <span id="m2credit"></span></p>
+</div>
+
+<section class="screen" id="title" aria-label="Start screen">
+  <div class="tbox">
+    <h1 class="thead">SPACE<br>CONSTRUCTION</h1>
+    <p class="tsub">CHOOSE YOUR MISSION</p>
+    <canvas id="tcv" width="240" height="135" aria-label="The probe and its six-animal crew"></canvas>
+    <p class="tmotto">Build, learn by exploring and fly higher, like a rocket toward the stars!</p>
+    <div class="tbtns">
+      <button class="playbtn" id="playBtn" type="button">&#9654; MISSION 1<small>BRAZIOSIRIS-REx &middot; Bennu</small></button>
+      <button class="playbtn m2b" id="playBtn2" type="button">&#9654; MISSION 2<small>LUNAR HEDGEHOG &middot; Helium-3</small></button>
+    </div>
+    <p class="thint">or press Enter for Mission 1</p>
+  </div>
+</section>
+<section class="screen" id="outro" hidden aria-label="Coming soon">
+  <p class="outro" role="status">More missions are coming.</p>
+  <button class="act sec" id="outroBack" type="button">Back to start</button>
+</section>
+<script>
+(()=>{
+"use strict";
+const BUDGET=100, MAX_ITEMS=2, BASE_FUEL=3;
+const PARTS=[
+ {id:'arm', name:'Sampling Arm', cost:40, effect:'Required to bring a sample home. Without it the capsule comes back empty.', who:4, say:'Bolting on the Sampling Arm!'},
+ {id:'fuel',name:'Extra Fuel Module', cost:45, effect:'+1 fuel point. If the probe gets stuck, the spare propellant frees it once (costs 1 extra fuel point and one weight level).', who:1, say:'Filling the extra fuel tank!'},
+ {id:'nav', name:'Precision Navigation', cost:60, effect:'Saves 1 fuel point on the approach and reaches each sample weight 1 second sooner (maximum weight at 5 s).', who:0, say:'Calibrating the star tracker!'},
+];
+const CREW=['Calico Cat','Hedgehog','Wolf','Capybara','Tiger','Axolotl'];
+const IDLE=['All systems look good.','Checking the heat shield...','Counting fuel points again!','Bennu is waiting for us.','Tightening one last bolt...'];
+let items=[]; // ids
+const total=()=>items.reduce((s,id)=>s+PARTS.find(p=>p.id===id).cost,0);
+const fuel=()=>BASE_FUEL+(items.includes('fuel')?1:0);
+
+/* ---- crew sprites (6 agents x 3 animations) ---- */
+const sheet=new Image(); sheet.src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAEgCAYAAAAE6nUwAAASGUlEQVR4nO1df2xV1R3/lHQmK3PqrBJ9hIehk0hFjVNneo2rbgm1tYIiJu5ljprVGrsJERCcJmZxTgtKWk2XsZIVZ5rqmKAoDrLpGsPrRNkylJJgMPSR1g1BbJ3WxRHv/rg9p+fee+6959d7p7X3mxBu372f8zk/3v3x+dzveQdgIpN13EzWcRERxd5vI8rIRibruGfM/A8AYPSz07kHD7QeAwBUd87CcCFfxu7TxZMyAHD3FWt/efCg0c9OR1PPTm4DqnMNtBFRoYpnOxAR35KJDnTcuAGQwUcXAuCtv/0FpzbV+BsRMXq6eIKN68Du8Q6M+wbK4n2nwNDgHlRXX0orT4JtxBM1+9Cda+BWQAfPNoJEKQZgBgE29ezE8wUPdGWv/xwub+nHikWzAAAXzz4DTT07wV7MdPGkjKHBPb7KEywbPKwOfkawIDa+3N6BL7d3+BoiE6J40wPAfvsInnAH8dwO6Jy7HQBw0cN9uOjhPt9nIqGLJ1GKAZgBeLeF7lwDDgyN+nYeemc7Dr3jr/iBodHQOayLD4apDmTxiUEeUh7aM+J+Ovoh999De0YSH3RU8UnYpDJU8WUETG4PAGJvI3FX4OFCvoycjzJ4lr+pZyfWLfyCi3/83dNiyyB1l8HTB6GaLRUAMP6V/QLf2Hoz3O/nAQBlrznYu6ALjb1duOX2Zu5DiNcAx1XBs/zrFn6Bx989jduAxhkfoJvzOduBsvhyYPzRcLyQU5tqcOiaHV7F6+73jlrjNWT+npsAzOIWXrOlAqr4IH/jNTvw3YPNwAaH4vcu6BLmV8EDmLgOkPOF/L23/6C7t/+gkNBRxdvi92kBcg5PPD15veX13MTfvCBfa1X8ZOCnEZStsjJ2yuJt63kb/Mb8AFIGoKbXbfEb8wN09bwtfmN+gK6et8VvzA8w0QAb/Eb8ALYBLDnBshGFtcVvxA8w0QBb/EXxA2QbYJPfiB+g2wDb/AD0/QATet4GfzkBk9tDd64BiLiNRMlREgQrq+dF5WzSyKvwS/kBUXJSR48H+U9tqsG6ln5FP6LIfkCcJ6+jx1n+6s5Z2HbNCS5/MfyAUE8C/mduANjW2wUAuOX25sTnbAD0wjX/kpuF8WwZQXySBtDhD/kBHtGEaMhkHdemHzBcyJex9Skmf2TY1vOyYc0PsO0nqESaHxA8KM0PSPMD0vyAND+AxFTND7DuB9j2E2TwX8n8ABm87xvQnWuIVFKAJydX91/B3Uc6IQnfnWuIxNoYACk/oDvXgMbeHUBnc2hfJuvdW7tzDW4cfluvp8rYezHlF9DzcZJaxA9onPEBVo+/yh8u5MtoBcg9lPQYT48DfEXFdqAIHvA/jQX54/S8CH8SPshPCxlZX+WOrK9y9/YfdLHZcTH/fu/fZif29XQm67gLFlyijJ8M/LSgTDbND0jzA0zr+amGn1bB9QSTQsSXU8HbCHoNyGQd9/XHrgUAPDtnLffgHx1tAwBc/wC4elwHT8oQqbTJAQg1YsV3PkPhxBiylRUonBgDALqdraxAx99nxlZAFS/XgW9wnwVU8CE/4Kffmw8AuPfupT7wU795AQBw1q/eivUDVPGkjFIPQMgP4FWe/SxJjqrg2Q4klV586w249+6luPfupVh86w0AgMKJsUQ/QBYf6Qdc/8Ab3G3RkMHbHIDIDnj9sWtx/QNv4PoH3gA5t2RCF687AKJB3w125xrcpp6dyFZ6LynPvmAe9j83jx740ZH3ka2siJOjynhekA4k2yohgg9dyJp6duLjn1/FvYjFXcB08QT7zY21WHzrDTj7gnm+/R8deR8v/fFP+OS+vsiLsAqe+yCkMl8gWBEVvI0B8N0Gl2SPo+1lz1mV8QMIHoCSnxDkl/UDgvwy+NCboX111+HrT271Kh54P//5qmUAzgwVTCqvig/yNz65lft+X5RfFu8rKPUDso67r+668U+83vJ6buJvXrB6XAU/Gfhp2NbjtvHTKoz6Abphg9+YH0DKECHVl8Pm+I35Abp63ha/MT/ARANs8BvxA9gGqOh5m/xG/AATDbDFXzQ/QFfPl4rfiB8Q1wCyHRc2+Y35Abp63ha/lB8QJ0d1G0DwcXK2GH6ClB/w+aplyH1wplE9HuRf9r+v4Ypdf9XyI4rmB8Q13ogeH+fYNsCfL1AMP4B7CvScP0IrA9ifL8DWpyTzBXLwzxew6QcMF/JlbH2KyR8ZtvW8bKR+gESk+QFkQ1eP2/YTVPFpfgBbQJofkOYHTESaHzDF8wNK6gfY9hN08NJ+wA/WOLGiSESOAuFbma6fUBI/gOT7i3gCcfgoWS3SgUmSWgTP8lvJDwD434BS5Qew/FJ+QJKZoYoP8kfpeVF+GTztgOFCvuxFOO6LAA5VV+LT6u2Y/8i4nh4fvaggWABQwdvkT/MDeGH7/bw1fNKBxd5vI3xyeMVK7wrZ0Q5uJdn9vKu4Dp6UAVj+/YCO9q7I54COXANtRFSo4m0NgO8u0NEOd/GSRTi59SnMnTsH9XW1AIBXd/VhcPAoFi9ZhI72Lm4P6+JJlHoAQn5A68pHMHfuHADwNQAABgeP4lvL7o31A1TxpIzFSxYBALcDAeClF3fHfsVl8SE/gFS+o70Lr+7qw6u7+tDR3kULTZKjKni2A8lxwSCfifx+gAw+JIfr62pxz531AIB77qz3bZMejQsVfDEGAADFs50QxIcugnPPn/hNMfJmhTzfzz2/Agc+ju8AXXx9XS3mnl+BjvYu2nlke/CDMRyIh1P8r3/3KsWTbR4+5AfceNbEzuDUcyB2+royng1TA3DPnfVyePKQMm3XF1ixspmeazbWFyD81tYXqK+rRUd7l/L6Al4DoLy+AOFXXV+AdKDy7wkuqsu5K1Y2w9k4ht8u8qzloJ6/a3cFt2DSAABK+DD/Ca6eF+eXxwOYuA5M+/kCzsYx30GJPQe/HlfBTwZ+GlNWz+vibet5G/zG/ABSBqC+voANfmN+gIkG2OA35gfoNsAWvzE/gJShqudt8RvxA9gGkOOCEafnbfIb8QNMNMAWv3E/QFfPl5rfiB+g2wDb/AD0/QATet4GP/09QSInba0vICJni7q+gIgfECUqdPR4kN/ZOIb8ffz8gmQ/osh+wIktucgR0NHjLH9Hew4Di7q4/MXwA7gpMpXLe2iDAfvzBdj6lGS+ALbkfPMFbPoBw4V8GVufYvJHhm09LxvW/ADbfoJKpPkBwYPS/IA0PyDND/B6K80PmNr5Adb8ANt+ghU/YFLoeUW89PoCL/95hLtvvBOm7voCIn4AnS+wJbwvkxVfX+Cu3RXAlpxvfYEVK5vRUaL1BV5e3kP5aQV27+rBorqc8voCpANV1xdg+VXWF2D5pecLiPoBcXJWJD8gCi+aHyDOL48HkOYHWH8/b5ufhmk9P9Xw0yq4nmBSiPhyKngb4bsVvbCqEgDwyuXPcA++8R8/BgAsffIE91akgydliFTa5ACEGpF/+upYsPOzN2MroIq3NQAhP2Dv00tiG/DK5c/E+gGqeFJGqQeA+/sBS588EQKSz0Smr8viSRlDg3vw78HDsf+S/ABZPHf6PPkqJX0WFbJ40wMQF4l+AInC0eO+v7Nzzkku3RBedwBkIna9wfu2luG+rf7TTUaOiuJ5UTh63PdPNkTxoQtZU89OerUMRtwFTBcfxBaOHqedt3GZS79BcRdhFXxkRXhRqvUFSjkAvmtAJuso5/ubwAPw3u+Dfx9PStBQwYcugtU7luMP857wKh7Q87e9vzqB3hyep+dLgYeOnp+KeO5tsHrHct/fQj33FcJb1+O28dMqjPoBumGD35gfQMoQIS2GHFblN+YHmGpAqfmN+QEmGmCD34gfwDZARc/b5DfiB5hogC3+ovgBJvR8qfiN+AG8kNHzNvmN+QG6et4Wv5QfILq+gI6eN7G+QNH8ABFRoavnq3csx8BNW0rmJ0j5AaceGk0893T0+HAhX5Z5yHEH5vHXFyiZH5B9tt7NPls/afQ8Wx/T/KFvABkFup11XJt6PlifUvCHwrael43UD5CIND+AbNh6PR0sQ6TSaX5Amh+Q5gek+QGmBuArmR9Qcj/Atp+gg6enAGkEuYJm55yDF1ZV4oVVlT4t/eyRH3ILEsXLzBcoxQBI5weYWF/gtvdXc5WliJ4XWV8gCc/yhyqgMl9AFg9EvxxRXa9QBh/FT6Xw3v6DLjY7Lubf7/3b7Ainu09lPC1kKr3f18Wn+QG8MK3npxp+WkXqB5CNTNZxB1qPAQCeqNnHPXh1/xUAgOrOWdx7uA6elCFS6aL6AaQRl3YC+1sR2o6qvC7e1gCE/IDRDd+mgEs7vf9J5UnhcX6AKj7YiFINQMgPIJWu7pyF/a0esLpzFi0oSY6q4NkOJLG/1TuerTwg9vsBMviQH7C/FShv6cehd7ajvKXft80WFBUq+GIMAKkLy8nDhx6Eylv66XZw+nl5Sz/wcXwH6OJpB7ZMfEa296MGu+LhFM/dx8GH/IBTm2omiAPTz09tqkmUoyp4NoIdSDoxuC8qlPHkacn2+gIj66si8SPrqxLXF5DFlxHwQOsxeq7ZWF+A8FtbX4BcPFTXF/AaoD5fgPCrri9AOlD59wRJITNPnou3/nXQq3jg/fxV5y0A4HALv7QTUMUH+RtnHOS+3xflV8EDmLgOTKffD/A9B5Cv5syT52LmyXPp51edt2C896JjuJAv08FPBn4atvW4bfy0CqN+gG7Y4DfmB5AyREiLIYdV+Y35AaYaUGp+Y36AiQbY4DfiB7ANICGj523yG/EDTDTAFr9xP0BXz5ea34gfENcAET1umx+Avh9gQs/b4Ke/J0jkpP76AvuwDnw9Hucoi8hZsfUF5Pil/IAoOamjx4P8M0+ei3ULP1T0I4rsB8yudSJHQEePs/yzax1s6+XPFyiZH+AegesewaTxA9j6FJM/VBjZFqkAiw12oA4+WJ9i80cWalPPy0bqB0hEmh9ANnTlrG0/QRWf5gewBaT5AWl+wFcnP8CaH2DbT7DiB0wKPa+LF9XjcY+Uono+6hy2kR8g5Qd05xrQ2HsQQDO38ePfhMT1Ba46bwFm1zq+9QUGWo+hWkDPJ68vkIx/pC9P+WkFynEMpzBLeX0B0oGq6wuw/CrrC7D8SvMFMlnHHVlf5bpHIJ1vn8k6bjZbpYyfDPy0IFU9XUw/IM0PSPMD0vyAokXoakoMSt7BZJ9IqpwK3kb4FlzMX1gLB4jL86PH8G5FOnhSRqkHgD4H5C+shfNeHw63tXErT6Jq7VqQY9kHGR18sIy4REseVgcf8gP++3w+tgGPzr441g9QwdscgBlsAWT6edXatVwg4MnJ/IW1ITmqgx8u5Muc9/rA6vmoaOrZGfoG6ODpc8Dmh9ckguOO1cGbHoC4COJpB/zkFxvoQb2VVSEg+xl7rCm8rQGg7wYdwG0aGsViAFeuacbbG7p8oCvXeCLiwNAoVvG+ghp4wOuUN7t+CUCsA4OKkMW/vaGL8pFgP2PxvgsR4J0jDw7x13WMugCyZajig9ioDoy7CKvg6VX0cFsbPc9szBcg/DodSOoug6cPQp8c/RCA+nyB8QYozxcg/OsWfoFHcTG3AXHzBUgHyuLpNeDyTriH29rw2h1jOGctf73A423Rq7Z9cvRDqOKD/I1r+esFivKr4AFMTz+Au95g3x3+9foSew7+9f5U8JOBn4ZtPW4bP63CqB+gGzb4jfkBug2wxT8p9LxNfiN+gKkG2OA34gfo6nmb/Eb8AN0G2OQ35gfo6nlb/Eb8AFIpVT1vk9+YH2BCz9vgl/IDkn7LT7UBLL/q+gIl8QOiRIWOHg/y990xhnW/5+cXCPgRxfUDWv6ZixwBHT3O8letzWHbQBeXvxh+APc83HRZD20wAGzrjc4OCWKBiawwkqAkgmfLCOLZ+pjmD/kBANCCnEv+zmQd16YfMFzIl7H1KSZ/ZNjW87KR+gESkeYHkA1dPW7bT1DFp/kBbAFpfkCaHyAWkz0/wIofYNtPSPMDSuUHXL1hJPKZPKjJeXiyvoCp9/u6eDpfgMjJ5PkCXcDt4X3k/ioyX+B4WwVakPPNFzjc1oaqce4Hhw6EMjxI5ZPnCyTjr76sh/Kr5AfEGRoi+QEAwt8A0fyABH4hPI8fmazjfv7cHveVxYNK+frH1m9Txk8GflpQJpvmB6T5Aab1/GTG/x9RpYE/hvOZRQAAAABJRU5ErkJggg==";
+let who=2, said=IDLE[0], t=0, flash=0, pilot=2;
+/* ---- simple sounds (WebAudio, starts after the first click) ---- */
+let SOUND=true,AC=null;
+function beep(f,d=.08,type='square',v=.04,f2){
+  if(!SOUND)return;
+  try{
+    if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();
+    if(AC.state==='suspended')AC.resume();
+    const o=AC.createOscillator(),g=AC.createGain();
+    o.type=type;o.frequency.setValueAtTime(f,AC.currentTime);
+    if(f2)o.frequency.exponentialRampToValueAtTime(f2,AC.currentTime+d);
+    g.gain.setValueAtTime(v,AC.currentTime);g.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+d);
+    o.connect(g);g.connect(AC.destination);o.start();o.stop(AC.currentTime+d);
+  }catch(e){}
+}
+function jingle(notes,step=150){notes.forEach((f,i)=>setTimeout(()=>beep(f,.16,'square',.05),i*step));}
+
+/* ---- tiny pixel icons ---- */
+const ICON={
+ arm:["x.........","xx........",".xx.......","..xx......","...xx.....","....xxxx..",".....x..x.",".....x..x.","....xx..xx",".........."],
+ fuel:["..xxxxxx..","..x....x..","..x.xx.x..","..x.xx.x..","..x....x..","..x.xx.x..","..x.xx.x..","..x....x..","..xxxxxx..","...x..x..."],
+ nav:["....xx....","....xx....","..x.xx.x..","...xxxx...",".xxxxxxxx.",".xxxxxxxx.","...xxxx...","..x.xx.x..","....xx....","....xx...."]
+};
+function icon(cv,id,col){const c=cv.getContext('2d');c.clearRect(0,0,10,10);c.fillStyle=col;
+ ICON[id].forEach((r,y)=>{for(let x=0;x<10;x++)if(r[x]==='x')c.fillRect(x,y,1,1);});}
+
+/* ---- UI ---- */
+const $=s=>document.querySelector(s);
+const cardsEl=$('#cards');
+const cardEls={};
+PARTS.forEach(p=>{
+  const b=document.createElement('button');b.className='card';b.type='button';
+  b.innerHTML=`<canvas width="10" height="10"></canvas><div><h3>${p.name} - <span class="cost">${p.cost} cr</span></h3><p>${p.effect}</p><div class="after"></div></div>`;
+  b.addEventListener('click',()=>toggle(p.id));
+  cardsEl.appendChild(b);cardEls[p.id]=b;
+  icon(b.querySelector('canvas'),p.id,'#fff');
+});
+const pilotsEl=$('#pilots'),pilotBtns=[];
+CREW.forEach((n,i)=>{const b=document.createElement('button');b.type='button';b.className='pilot'+(i===pilot?' on':'');
+  b.innerHTML='<canvas width="16" height="16"></canvas><small>'+n+'</small>';b.setAttribute('aria-pressed',i===pilot);
+  b.addEventListener('click',()=>{pilot=i;pilotBtns.forEach((x,j)=>{x.classList.toggle('on',j===i);x.setAttribute('aria-pressed',j===i);});
+    who=i;said=n+' reporting for duty! I will fly this probe.';flash=40;beep(600,.07);render();});
+  pilotsEl.appendChild(b);pilotBtns.push(b);});
+function drawPilotIcons(){pilotBtns.forEach((b,i)=>{const c=b.querySelector('canvas').getContext('2d');c.imageSmoothingEnabled=false;c.clearRect(0,0,16,16);c.drawImage(sheet,0,i*48,16,16,0,0,16,16);});}
+sheet.addEventListener('load',drawPilotIcons);if(sheet.complete&&sheet.naturalWidth)drawPilotIcons();
+$('#soundBtn').addEventListener('click',()=>{SOUND=!SOUND;$('#soundBtn').textContent='Sound: '+(SOUND?'ON':'OFF');if(SOUND)beep(660,.08);});
+function status(p){
+  const on=items.includes(p.id);
+  if(on)return{on:true,lock:false,txt:`Equipped. Remove to get ${p.cost} credits back.`,cls:'pos'};
+  if(items.length>=MAX_ITEMS)return{lock:true,txt:`Blocked: the probe holds only ${MAX_ITEMS} items.`,cls:'neg'};
+  const after=BUDGET-total()-p.cost;
+  if(after<0)return{lock:true,txt:`Over budget by ${-after} credits. Remove one item to switch.`,cls:'neg'};
+  return{lock:false,txt:`If equipped: ${after} credits left.`,cls:'pos'};
+}
+function render(){
+  $('#cred').textContent=BUDGET-total();
+  $('#fuel').textContent=(mode==='flight'?F.fuel:fuel());
+  $('#cnt').textContent=`${items.length}/${MAX_ITEMS}`;
+  PARTS.forEach(p=>{
+    const s=status(p),el=cardEls[p.id];
+    el.classList.toggle('on',!!s.on);el.classList.toggle('lock',!!s.lock);
+    el.setAttribute('aria-pressed',!!s.on);el.setAttribute('aria-disabled',!!s.lock);
+    const a=el.querySelector('.after');a.textContent=s.txt;a.className='after '+s.cls;
+  });
+  $('#bubble').textContent=`${CREW[who]}: ${said}`;
+}
+function say(w,txt){if(mode==='flight'&&F.pilot!=null)w=F.pilot;who=w;said=txt;flash=40;render();}
+function toggle(id){
+  const p=PARTS.find(x=>x.id===id);
+  if(items.includes(id)){items=items.filter(x=>x!==id);beep(420,.06);say(3,`Removing the ${p.name}. Credits are back.`);msg('');}
+  else{
+    const s=status(p);
+    if(s.lock){msg(s.txt);say(who,'That does not fit the budget...');return;}
+    items.push(id);beep(680,.07,'square',.04,900);say(p.who,p.say);msg('');
+  }
+}
+function msg(s){$('#msg').textContent=s;}
+$('#reset').addEventListener('click',()=>{items=[];msg('');say(5,'Bench cleared. Fresh start!');});
+
+/* ---- drawing ---- */
+const cv=$('#probe'),c=cv.getContext('2d');
+const tcv2=$('#tcv').getContext('2d');
+const fcv=$('#flight'),fc=fcv.getContext('2d');
+c.imageSmoothingEnabled=false;fc.imageSmoothingEnabled=false;
+function disc(ctx,cx,cy,r,col){ctx.fillStyle=col;for(let y=Math.max(0,cy-r);y<=Math.min(ctx.canvas.height-1,cy+r);y++){const dx=Math.floor(Math.sqrt(Math.max(0,r*r-(y-cy)*(y-cy))));ctx.fillRect(cx-dx,y,dx*2,1);}}
+/* the probe, drawn at offset (ox,oy). opts: feet, flame */
+function drawProbe(ctx,ox,oy,o={}){
+  const R=(x,y,w,h,col)=>{ctx.fillStyle=col;ctx.fillRect(ox+x,oy+y,w,h);};
+  if(o.feet){R(46,62,4,15,'#6f7388');R(70,62,4,15,'#6f7388');R(42,76,12,2,'#4a4e66');R(66,76,12,2,'#4a4e66');}
+  // solar panels
+  R(6,38,32,14,'#1b1f3b');R(8,40,28,10,'#1d4ed8');for(let x=8;x<36;x+=7)R(x,40,1,10,'#7cc4f0');R(8,45,28,1,'#7cc4f0');
+  R(82,38,32,14,'#1b1f3b');R(84,40,28,10,'#1d4ed8');for(let x=84;x<112;x+=7)R(x,40,1,10,'#7cc4f0');R(84,45,28,1,'#7cc4f0');
+  R(38,44,6,2,'#c9c6d6');R(76,44,6,2,'#c9c6d6');
+  // body
+  R(42,26,36,36,'#1b1f3b');R(43,27,34,34,'#f4f1ea');R(43,27,34,2,'#ffffff');
+  R(75,27,2,34,'#c9c6d6');R(43,59,34,2,'#c9c6d6');
+  R(43,31,34,3,'#2f7fe0');R(43,54,34,3,'#2f7fe0');
+  // dish
+  R(58,18,4,8,'#c9c6d6');R(53,14,14,3,'#e8e8f0');R(55,17,10,1,'#9a98b5');R(59,10,2,4,'#c9c6d6');
+  // nozzle
+  R(54,62,12,4,'#4a4e66');R(56,66,8,2,'#4a4e66');
+  if(o.flame){const k=Math.floor(t/3)%2;R(56,68,8,3+k,'#ffdf00');R(58,71+k,4,4,'#ff9a1f');R(59,75+k,2,3,'#ff4d4d');}
+  // porthole + agent
+  R(50,35,20,18,'#1b1f3b');R(52,37,16,14,'#7cc4f0');
+  const fr=Math.floor(t/18)%4,row=(flash>0||o.wave)?2:0;
+  ctx.save();ctx.beginPath();ctx.rect(ox+52,oy+37,16,14);ctx.clip();
+  if(sheet.complete&&sheet.naturalWidth)ctx.drawImage(sheet,fr*16,who*48+row*16,16,16,ox+52,oy+36+Math.round(Math.sin(t*.12)),16,16);
+  ctx.restore();
+  R(52,37,16,1,'#d8f3ff');R(52,37,1,14,'#d8f3ff');
+  // optional parts
+  if(items.includes('nav')){R(44,16,8,10,'#1b1f3b');R(45,17,6,8,'#4a4e66');R(46,19,4,4,'#0b0d2a');R(47,20,2,2,(t>>4&1)?'#7be8ff':'#2f7fe0');}
+  if(items.includes('fuel')){R(80,56,14,20,'#1b1f3b');R(81,57,12,18,'#e8e8f0');R(81,62,12,3,'#2f7fe0');R(81,68,12,3,'#2f7fe0');R(84,55,6,2,'#9a98b5');R(77,60,3,2,'#c9c6d6');}
+  if(items.includes('arm')){
+    R(40,58,4,4,'#c9c6d6');const sw=o.feet?0:Math.round(Math.sin(t*.06));
+    R(34,60,8,3,'#1b1f3b');R(35,61,6,1,'#c9c6d6');
+    R(30,62,4,10,'#1b1f3b');R(31,63,2,8,'#c9c6d6');R(31,62,2,2,'#2f7fe0');
+    R(26+sw,70,10,3,'#1b1f3b');R(27+sw,71,8,1,'#8a8ea3');R(25+sw,72,3,5,'#1b1f3b');R(33+sw,72,3,5,'#1b1f3b');
+  }
+}
+function benchScene(){
+  c.fillStyle='#10143c';c.fillRect(0,0,120,90);
+  for(let i=0;i<22;i++){c.fillStyle=i%4?'#fff':'#8fa8ff';c.fillRect((i*37)%120,(i*23)%60,1,1);}
+  c.fillStyle='#5a4a3a';c.fillRect(0,76,120,14);c.fillStyle='#a98b6a';c.fillRect(0,76,120,2);c.fillStyle='#3b3128';c.fillRect(0,78,120,1);
+  for(let x=6;x<120;x+=18){c.fillStyle='#4a3c2e';c.fillRect(x,82,10,1);}
+  c.fillStyle='#8a8ea3';c.fillRect(50,66,4,10,'#8a8ea3');c.fillRect(66,66,4,10,'#8a8ea3');
+  c.fillStyle='#6f7388';c.fillRect(46,74,12,2);c.fillRect(62,74,12,2);
+  c.save();c.translate(0,Math.round(Math.sin(t*.05)));drawProbe(c,0,0);c.restore();
+}
+
+
+/* ---- step 3 scenes ---- */
+const flagMini=(ctx,x,y,w=30,h=21)=>{ctx.fillStyle='#009c3b';ctx.fillRect(x,y,w,h);ctx.fillStyle='#ffdf00';
+  const cx=x+w/2,cy=y+h/2;for(let j=0;j<h-4;j++){const k=Math.min(j,h-5-j);const hw=Math.round((w/2-2)*(k+1)/((h-4)/2+.5));ctx.fillRect(Math.round(cx-hw),y+2+j,hw*2,1);}
+  disc(ctx,Math.round(cx),Math.round(cy),Math.round(h*.22),'#002776');};
+function agent(ctx,i,anim,fr,x,y,sc){ctx.drawImage(sheet,fr*16,i*48+({idle:0,walk:1,wave:2})[anim]*16,16,16,Math.round(x),Math.round(y),16*sc,16*sc);}
+function capsule(ctx,x,y){ctx.fillStyle='#1b1f3b';ctx.fillRect(x-7,y-1,14,13);ctx.fillStyle='#f4f1ea';ctx.fillRect(x-6,y,12,8);ctx.fillStyle='#2f7fe0';ctx.fillRect(x-6,y+3,12,2);ctx.fillStyle='#4a4e66';ctx.fillRect(x-5,y+8,10,3);}
+function clock(ctx,x,y){disc(ctx,x,y,9,'#1b1f3b');disc(ctx,x,y,7,'#f4f1ea');ctx.fillStyle='#1b1f3b';ctx.fillRect(x,y-5,1,5);ctx.fillRect(x,y,4,1);}
+function homeScene(e){
+  const p=Math.min(1,e/3000),q=ease(p);
+  disc(fc,30,112,Math.round(16-10*q),'#7d8199');
+  const r=Math.round(8+38*q);
+  disc(fc,206,66,r+2,'#7cc4f0');disc(fc,206,66,r,'#2f6fd6');disc(fc,206-Math.round(r*.3),66-Math.round(r*.2),Math.round(r*.3),'#3aa655');disc(fc,206+Math.round(r*.35),66+Math.round(r*.3),Math.round(r*.22),'#3aa655');
+  drawProbe(fc,Math.round(10+p*50),26,{flame:p<.35});
+  return 'HEADING HOME';
+}
+function dropScene(e){
+  const p=Math.min(1,e/3800),q=ease(p);
+  fc.fillStyle='#7cc4f0';fc.fillRect(0,0,240,105);fc.fillStyle='#a8e0ff';fc.fillRect(0,72,240,33);
+  [[20,22],[120,12],[196,38]].forEach(([x,y])=>{fc.fillStyle='#fff';fc.fillRect(x,y,26,5);fc.fillRect(x+5,y-3,14,4);});
+  fc.fillStyle='#3aa655';fc.fillRect(0,105,240,30);fc.fillStyle='#2b8a43';fc.fillRect(0,105,240,2);
+  fc.fillStyle='#e8e8f0';fc.fillRect(172,70,56,35);fc.fillStyle='#2f7fe0';fc.fillRect(168,63,64,8);fc.fillStyle='#1b1f3b';fc.fillRect(192,84,14,21);
+  fc.fillStyle='#7cc4f0';fc.fillRect(178,78,9,9);fc.fillRect(212,78,9,9);
+  fc.fillStyle='#d8dbe8';fc.fillRect(200,44,1,19);flagMini(fc,201,44,12,8);
+  const fr=Math.floor(t/12)%4;
+  agent(fc,0,'wave',fr,118,89,1);agent(fc,1,'wave',(fr+1)%4,134,89,1);agent(fc,2,'wave',(fr+2)%4,150,89,1);
+  const cx=Math.round(80+Math.sin(p*7)*7*(1-p)),cy=Math.round(-26+q*(96+26));
+  if(p<.88){fc.fillStyle='#1b1f3b';fc.fillRect(cx-15,cy-35,30,6);
+    for(let i=0;i<7;i++){fc.fillStyle=i%2?'#2f7fe0':'#f4f1ea';fc.fillRect(cx-14+i*4,cy-34,4,4);}
+    fc.fillStyle='#d8dbe8';fc.fillRect(cx-10,cy-29,1,28);fc.fillRect(cx+10,cy-29,1,28);fc.fillRect(cx,cy-29,1,28);}
+  else{fc.fillStyle='#f4f1ea';fc.fillRect(cx+9,cy+7,12,4);fc.fillStyle='#2f7fe0';fc.fillRect(cx+13,cy+7,4,4);}
+  capsule(fc,cx,cy);
+  return 'THE CAPSULE COMES HOME';
+}
+function labScene(e){
+  const sample=((F.tier&&F.tier.k)||0)>0,none=F.outcome==='stuck',nP=[0,3,7,9,14][(F.tier&&F.tier.k)||0];
+  fc.fillStyle='#232866';fc.fillRect(0,0,240,135);fc.fillStyle='#2f3590';for(let x=0;x<240;x+=24)fc.fillRect(x,0,1,100);
+  fc.fillStyle='#3b3128';fc.fillRect(0,100,240,35);fc.fillStyle='#5a4a3a';fc.fillRect(0,100,240,2);
+  clock(fc,24,22);flagMini(fc,196,10,24,17);
+  fc.fillStyle='#8a8ea3';fc.fillRect(66,86,108,8);fc.fillStyle='#c4c8dc';fc.fillRect(66,86,108,2);fc.fillStyle='#6f7388';fc.fillRect(74,94,8,38);fc.fillRect(158,94,8,38);
+  const o=none?0:Math.max(0,Math.min(1,(e-1300)/1100));
+  if(!none){
+    fc.fillStyle='#1b1f3b';fc.fillRect(104,58,32,28);fc.fillStyle='#f4f1ea';fc.fillRect(106,60,28,24);fc.fillStyle='#2f7fe0';fc.fillRect(106,70,28,4);fc.fillStyle='#4a4e66';fc.fillRect(106,80,28,4);
+    fc.fillStyle='#2a2d44';fc.fillRect(108,58,24,4);
+    if(o>0){ // contents
+      if(sample){[[110,57,4,3],[116,57,5,3],[123,57,4,3],[128,58,3,2],[113,59,3,2],[119,55,5,4],[125,54,4,4],[111,54,4,3],[121,52,4,3],[115,51,4,4],[126,51,3,3],[118,49,4,3],[123,48,3,3],[112,50,3,3]].slice(0,nP).forEach(([x,y,w,h],i)=>{fc.fillStyle=i%2?'#565a70':'#2b2b30';fc.fillRect(x,y-Math.round(o*0),w,h);fc.fillStyle='#8a8ea3';fc.fillRect(x,y,1,1);});
+        if((t>>3)%3===0){fc.fillStyle='#fff';fc.fillRect(118,50,1,3);fc.fillRect(117,51,3,1);}}
+    }
+    const ldx=Math.round(o*22),ldy=Math.round(o*26);
+    fc.fillStyle='#1b1f3b';fc.fillRect(108+ldx,48-ldy,24,10);fc.fillStyle='#e8e8f0';fc.fillRect(110+ldx,50-ldy,20,6);fc.fillStyle='#4a4e66';fc.fillRect(110+ldx,56-ldy,20,2);
+  }
+  const fr=Math.floor(t/14)%4,react=o>=1?'wave':'idle';
+  agent(fc,0,react,fr,12,86,2);agent(fc,1,react,(fr+1)%4,42,86,2);agent(fc,3,react,(fr+2)%4,178,86,2);agent(fc,5,react,(fr+3)%4,206,86,2);
+  return none?'LAB: NO CAPSULE ARRIVED':(o<1?'LAB: OPENING THE CAPSULE':(sample?(F.outcome==='success'?'LAB: A SAMPLE FROM BENNU!':'LAB: NOT ENOUGH SAMPLE'):'LAB: THE CAPSULE IS EMPTY'));
+}
+let conf=[];
+function winScene(now){
+  const ok=F.outcome==='success';
+  fc.fillStyle='#0b0d2a';fc.fillRect(0,0,240,135);
+  for(let i=0;i<50;i++){fc.fillStyle=i%5?'#fff':'#8fa8ff';fc.fillRect((i*53)%240,(i*29)%110,1,1);}
+  disc(fc,40,40,22,'#7cc4f0');disc(fc,40,40,20,'#2f6fd6');disc(fc,34,36,6,'#3aa655');disc(fc,46,46,5,'#3aa655');
+  flagMini(fc,178,14,40,28);fc.fillStyle='#d8dbe8';fc.fillRect(176,12,2,34);
+  fc.fillStyle='#8a8ea3';fc.fillRect(0,116,240,19);fc.fillStyle='#c4c8dc';fc.fillRect(0,116,240,2);
+  const fr=Math.floor(t/10)%4;
+  for(let i=0;i<6;i++)agent(fc,i,ok?'wave':'idle',(fr+i)%4,10+i*37,84+(ok?-Math.abs(Math.round(Math.sin((t+i*9)*.18)*6)):0),2);
+  if(ok){conf.forEach(c=>{c.y+=c.vy;c.x+=Math.sin((t+c.k)*.1)*.6;if(c.y>135){c.y=-4;}fc.fillStyle=c.c;fc.fillRect(Math.round(c.x),Math.round(c.y),2,3);});}
+  return ok?'MISSION SUCCESS!':'TRY AGAIN, AGENTS!';
+}
+function commScene(now){
+  disc(fc,26,112,15,'#7cc4f0');disc(fc,26,112,14,'#2f6fd6');disc(fc,22,108,4,'#3aa655');
+  disc(fc,212,64,46,'#7d8199');disc(fc,198,55,11,'#565a70');disc(fc,228,78,8,'#565a70');
+  drawProbe(fc,55,26,{});
+  let p=0;if(F.goSent)p=Math.min(1,(now-F.goT0)*SP('comm')/2000);
+  if(F.goSent){
+    for(let k=0;k<=22;k++){const q=k/22;fc.fillStyle=k%2?'#2f7fe0':'#1b4aa0';fc.fillRect(Math.round(42+q*66),Math.round(100-q*58),1,1);}
+    for(let i=0;i<5;i++){const q=(p*2+i/5)%1;fc.fillStyle='#7be8ff';fc.fillRect(Math.round(41+q*66),Math.round(98-q*58),3,3);}
+    if(p>=1){fc.fillStyle='#7be8a0';fc.fillRect(106,38,5,5);}
+  }
+  return F.goSent?'EARTH \u2192 SPACECRAFT':'WAITING FOR THE GO COMMAND';
+}
+function setCap(txt){const el=$('#cap');el.hidden=false;el.textContent=txt;}
+
+/* ---- flight ---- */
+const REQ_G=60;
+/* Only real NASA weights are shown: 60 g (requirement), 70.3 g (first measurement, Oct 2023), 121.6 g (final measured sample).
+   The seconds at which a weight is reached (3, 4.5 and 6 s) are game rules. */
+const TIERS=[
+ {k:0,g:0,short:'0 g',label:'no sample',cap:'nothing collected'},
+ {k:1,g:null,short:'under 60 g',label:'less than 60 g',cap:'below NASA\'s requirement'},
+ {k:2,g:60,short:'60 g or more',label:'60 g or more',cap:'NASA\'s mission requirement'},
+ {k:3,g:70.3,short:'70.3 g',label:'70.3 g',cap:'NASA\'s first measurement (2023)'},
+ {k:4,g:121.6,short:'121.6 g',label:'121.6 g',cap:'NASA\'s final measured sample'}];
+const thr=()=>items.includes('nav')?[2,3.5,5]:[3,4.5,6];
+const tierAt=ct=>{const t=thr();return !items.includes('arm')||ct<1?TIERS[0]:ct<t[0]?TIERS[1]:ct<t[1]?TIERS[2]:ct<t[2]?TIERS[3]:TIERS[4];};
+function renderMarks(){const t=thr(),p=x=>(x/7*100).toFixed(2)+'%';
+  const pts=[[1,'1 s: N2 gas'],[t[0],t[0]+' s: 60 g'],[t[1],t[1]+' s: 70.3 g'],[t[2],t[2]+' s: 121.6 g']];
+  $('#marks').innerHTML=pts.map(a=>`<u style="left:${p(a[0])}"></u>`).join('')+pts.map(a=>`<span style="left:${p(a[0])}">${a[1]}</span>`).join('')+`<u class="lim" style="left:${p(6.5)}"></u><span class="lim" style="left:${p(6.5)}">LIMIT 6.5 s</span>`;}
+let DEMO=(location.hash==='#demo');
+const simCt=r=>r<=5.5?r:5.5+(r-5.5)*0.5;  // game rule: time runs at half speed from 5.5 s to the 6.5 s limit
+const SP=ph=>{const b=(window.SC&&window.SC.speed)||1;return ph==='touch'||ph==='comm'?b:b*(DEMO?3:1);};
+const DUR={count:3000,launch:2600,cruise:3200,descent:2200,away:2600,stuck:2600};
+const F={phase:'idle',t0:0,fuel:0,max:0,choice:null,outcome:null,dust:[]};
+let mode='bench',logLines=[];
+const ease=p=>1-Math.pow(1-p,2);
+const surfY=x=>Math.round(260-Math.sqrt(160*160-(x-120)*(x-120)));
+function puff(x,y,n){for(let i=0;i<n;i++)F.dust.push({x:x+(Math.random()-.5)*30,y:y,vx:(Math.random()-.5)*1.6,vy:-Math.random()*.8,l:30+Math.random()*20});}
+function flightScene(now){
+  const e=(now-F.t0)*SP(F.phase),ph=F.phase;
+  if(ph==='comm'||ph==='home'||ph==='drop'||ph==='lab'||ph==='result'){
+    fc.fillStyle='#0b0d2a';fc.fillRect(0,0,240,135);
+    for(let i=0;i<55;i++){fc.fillStyle=i%5?'#fff':'#8fa8ff';fc.fillRect((i*53)%240,(i*29)%105,1,1);}
+    const cap=ph==='comm'?commScene(now):ph==='home'?homeScene(e):ph==='drop'?dropScene(e):ph==='lab'?labScene(e):winScene(now);
+    setCap(cap);return;
+  }
+  fc.fillStyle='#0b0d2a';fc.fillRect(0,0,240,135);
+  const drift=(ph==='cruise')?e*.04:0;
+  for(let i=0;i<55;i++){fc.fillStyle=i%5?'#fff':'#8fa8ff';fc.fillRect((((i*53-drift)%240)+240)%240|0,(i*29)%105,1,1);}
+  let probe=null,cap='',alert=false;
+  if(ph==='launch'||ph==='count'){
+    const p=ph==='count'?0:Math.min(1,e/DUR.launch);
+    disc(fc,120,215,112,'#7cc4f0');disc(fc,120,217,110,'#2f6fd6');
+    disc(fc,88,118,8,'#3aa655');disc(fc,150,124,10,'#3aa655');disc(fc,122,111,5,'#3aa655');disc(fc,175,132,6,'#e1ebf5');
+    probe={ox:60,oy:Math.round(28-p*p*170),o:{feet:true,flame:p>.04}};cap=ph==='count'?'COUNTDOWN':'LIFTOFF';
+    if(ph==='launch'&&p<.5&&Math.random()<.5)puff(120,106,1);
+  }else if(ph==='cruise'){
+    const p=Math.min(1,e/DUR.cruise),q=ease(p);
+    disc(fc,26,112,15,'#7cc4f0');disc(fc,26,112,14,'#2f6fd6');disc(fc,22,108,4,'#3aa655');
+    const r=Math.round(6+40*q);
+    disc(fc,212,64,r,'#7d8199');disc(fc,212-Math.round(r*.3),64-Math.round(r*.2),Math.round(r*.25),'#565a70');disc(fc,212+Math.round(r*.35),64+Math.round(r*.3),Math.round(r*.18),'#565a70');
+    probe={ox:Math.round(10+p*45),oy:Math.round(26+Math.sin(e*.004)*2),o:{flame:p<.3}};cap='CRUISE TO BENNU';
+  }else{
+    // surface scene
+    disc(fc,120,260,160,'#8a8ea3');
+    for(let x=0;x<240;x+=2){const y=surfY(x);fc.fillStyle='#c4c8dc';fc.fillRect(x,y,2,2);}
+    [[18,6],[44,3],[70,9],[150,5],[182,8],[214,4],[232,7]].forEach(([x,h])=>{const y=surfY(x);fc.fillStyle='#565a70';fc.fillRect(x,y+3,h,4);fc.fillStyle='#6f7388';fc.fillRect(x,y+3,h,1);});
+    for(let i=0;i<16;i++){const x=(i*47)%240,y=surfY(x)+10+(i*13)%30;fc.fillStyle='#6f7388';fc.fillRect(x,y,2,1);}
+    // marker
+    const mx=196,my=surfY(mx);fc.fillStyle='#ffdf00';fc.fillRect(mx,my-12,1,12);fc.fillRect(mx,my-12,7,4);
+    if(ph==='descent'){const p=Math.min(1,e/DUR.descent);probe={ox:60,oy:Math.round(-60+ease(p)*84),o:{feet:true,flame:p<.85}};cap='APPROACHING NIGHTINGALE';}
+    else if(ph==='touch'){probe={ox:60,oy:24,o:{feet:true,wave:true}};cap='NIGHTINGALE - TOUCH-AND-GO';}
+    else if(ph==='away'){const p=Math.min(1,e/DUR.away);probe={ox:60,oy:Math.round(24-p*p*150),o:{feet:true,flame:true}};cap='BACKING AWAY';}
+    else if(ph==='stuck'){const p=Math.min(1,e/DUR.stuck);probe={ox:60,oy:24+Math.round(Math.min(1,p*3)*4),o:{feet:true,wave:false}};cap='THE PROBE IS STUCK';alert=true;}
+    else if(ph==='done'){
+      if(F.choice==='away'){cap='ON ITS WAY HOME';}
+      else{probe={ox:60,oy:28,o:{feet:true}};cap='THE PROBE IS STUCK';alert=true;}
+    }
+  }
+  if(probe)drawProbe(fc,probe.ox,probe.oy,probe.o);
+  F.dust=F.dust.filter(d=>d.l>0);
+  F.dust.forEach(d=>{d.x+=d.vx;d.y+=d.vy;d.l--;fc.fillStyle=d.l>12?'#c4c8dc':'#8a8ea3';fc.fillRect(Math.round(d.x),Math.round(d.y),2,2);});
+  if(alert&&((now>>8)&1)){fc.strokeStyle='#ff4d4d';fc.lineWidth=3;fc.strokeRect(1.5,1.5,237,132);}
+  const capEl=$('#cap');capEl.hidden=false;capEl.textContent=cap;
+}
+let TITLE_ON=true;
+function titleScene(){
+  const x=tcv2;x.imageSmoothingEnabled=false;
+  x.fillStyle='#0b0d2a';x.fillRect(0,0,240,135);
+  for(let i=0;i<70;i++){x.fillStyle=((t+i*7)%70<4)?'#ffe9a8':(i%5?'#fff':'#8fa8ff');x.fillRect((i*53)%240,(i*29)%100,1,1);}
+  disc(x,206,38,27,'#7cc4f0');disc(x,206,38,25,'#2f6fd6');disc(x,198,30,7,'#3aa655');disc(x,215,47,6,'#3aa655');disc(x,203,49,3,'#e1ebf5');
+  disc(x,28,40,14,'#7d8199');disc(x,24,36,4,'#565a70');disc(x,33,45,3,'#565a70');
+  drawProbe(x,60,Math.round(4+Math.sin(t*.04)*2),{});
+  x.fillStyle='#8a8ea3';x.fillRect(0,124,240,11);x.fillStyle='#c4c8dc';x.fillRect(0,124,240,2);
+  for(let i=0;i<6;i++){const f=Math.floor(t/12)+i;agent(x,i,(f%6<3)?'wave':'idle',f%4,10+i*37,92,2);}
+}
+function draw(now){
+  t++;
+  if(TITLE_ON)titleScene();
+  if(M2.on){m2Draw();}else if(mode==='bench'){benchScene();}else{tickFlight(now||performance.now());flightScene(now||performance.now());}
+  if(flash>0)flash--;
+  requestAnimationFrame(draw);
+}
+
+/* ---- flight logic ---- */
+function addLog(s){logLines.push(s);const el=$('#log');el.innerHTML=logLines.map(l=>`<div>&gt; ${l}</div>`).join('');el.scrollTop=el.scrollHeight;}
+function setAlert(html,hot){const a=$('#alert');a.innerHTML=html;a.classList.toggle('hot',!!hot);}
+function stepUI(n){[...$('#steps').children].forEach((li,i)=>{li.className=i<n?'done':(i===n?'active':'');});}
+function setPhase(p){F.phase=p;F.t0=performance.now();}
+function startFlight(){
+  mode='flight';renderMarks();F.pilot=pilot;who=pilot;F.cnt=null;F.lastSec=0;F.fuel=fuel();F.max=fuel();F.choice=null;F.outcome=null;F.timing=null;F.goSent=false;F.goDone=false;F.goT0=null;$('#goBox').hidden=true;$('#sendGo').disabled=false;$('#sigWrap').hidden=true;$('#ctrlTitle').textContent='MISSION CONTROL';F.stayed=false;F.maxWarn=false;F.freed=false;F.mass=0;F.tier=TIERS[0];F.ct=0;F.warned=false;$('#away').classList.remove('warn');F.dust=[];logLines=[];$('#log').innerHTML='';
+  $('#probe').hidden=true;fcv.hidden=false;$('#benchPanel').hidden=true;$('#ctrlPanel').hidden=false;
+  $('#tag').textContent='STEP 2 OF 3 - FLIGHT';$('#fuelLbl').textContent='Fuel left';
+  $('#contact').hidden=true;$('#decide').hidden=true;$('#notify').hidden=true;$('#resultPanel').hidden=true;
+  stepUI(0);setPhase('count');
+  setAlert('<b>MISSION CONTROL:</b> Launch sequence started. Countdown to liftoff...');
+  addLog(`Launch with ${F.fuel} fuel point${F.fuel===1?'':'s'}. Pilot: ${CREW[pilot]}.`);
+  say(pilot,'Countdown started. Strapping in!');
+}
+function startApproach(){
+  setPhase('descent');$('#goBox').hidden=true;
+  if(items.includes('nav')){addLog('Approach to Nightingale: Precision Navigation aligned the probe. No fuel used.');
+    setAlert('<b>MISSION CONTROL:</b> GO received. Precision Navigation locked the landing spot. Fuel untouched. Next: contact with Bennu. You MUST back away before 6.5 s.');}
+  else{F.fuel=Math.max(0,F.fuel-1);addLog('Approach to Nightingale used 1 fuel point.');
+    setAlert('<b>MISSION CONTROL:</b> GO received. Approaching Nightingale without Precision Navigation. That costs 1 fuel point. Next: contact with Bennu. You MUST back away before 6.5 s.');}
+  say(0,'Nightingale site in sight...');render();
+}
+$('#sendGo').addEventListener('click',()=>{
+  if(F.phase!=='comm'||F.goSent)return;           // blocks repeated clicks
+  F.goSent=true;F.goT0=performance.now();$('#sendGo').disabled=true;
+  $('#sigWrap').hidden=false;$('#sigTimer').textContent='18:30';
+  setAlert('<b>MISSION CONTROL:</b> GO sent! The command is travelling from Earth to the spacecraft...');
+  addLog('Send GO clicked. Signal: Earth to Spacecraft.');beep(800,.1,'square',.05,1200);});
+function tickFlight(now){
+  const e=(now-F.t0)*SP(F.phase),ph=F.phase;
+  if(ph==='count'){
+    const n=3-Math.floor(e/1000);
+    if(e>=DUR.count){setPhase('launch');$('#count').hidden=true;beep(200,.7,'sawtooth',.05,900);
+      setAlert('<b>MISSION CONTROL:</b> LIFTOFF! The probe is on its way.');addLog('Liftoff!');say(pilot,'Liftoff! All thrusters go!');}
+    else if(n!==F.cnt){F.cnt=n;const c=$('#count');c.hidden=false;c.textContent=n;beep(520,.12);}
+  }else if(ph==='launch'&&e>=DUR.launch){
+    setPhase('cruise');stepUI(1);
+    setAlert('<b>MISSION CONTROL:</b> Orbit reached. Probe is flying to asteroid Bennu.');
+    addLog('Liftoff complete. Cruising to Bennu.');say(2,'Bennu is getting bigger!');
+  }else if(ph==='cruise'&&e>=DUR.cruise){
+    setPhase('comm');F.goSent=false;F.goDone=false;
+    $('#goBox').hidden=false;$('#sigWrap').hidden=true;$('#sendGo').disabled=false;$('#sigTimer').textContent='18:30';
+    setAlert('<b>MISSION CONTROL:</b> The probe is in position near Bennu. The final approach needs a <b>GO</b> from Earth. Click <b>Send GO</b>.');
+    addLog('Waiting for the GO command from Earth.');say(0,'Waiting for the GO from Earth...');
+  }else if(ph==='comm'){
+    if(F.goSent&&!F.goDone){
+      const p=Math.min(1,(now-F.goT0)*SP('comm')/2000),rem=Math.round(1110*(1-p));
+      $('#sigTimer').textContent=String(Math.floor(rem/60)).padStart(2,'0')+':'+String(rem%60).padStart(2,'0');
+      if(p>=1){F.goDone=true;addLog('Signal received: GO acknowledged. Starting the final approach.');startApproach();}
+    }
+  }else if(ph==='descent'&&e>=DUR.descent){
+    setPhase('touch');stepUI(2);puff(90,100,10);
+    $('#contact').hidden=false;$('#decide').hidden=false;
+    $('#away').disabled=false;$('#stay').disabled=false;$('#stay').textContent='Stay longer';F.stayed=false;F.maxWarn=false;$('#mass').classList.remove('max');
+    $('#ctrlTitle').textContent='Onboard rehearsal';
+    setAlert('<b>ONBOARD SYSTEM:</b> You are the onboard system now. Earth is about 18.5 minutes away, so the spacecraft decides on its own. CONTACT! The probe touched the loose surface. The longer you hold after the nitrogen burst (1 s), the more rock you collect. But you <b>MUST back away before the 6.5 s limit</b> or the probe gets stuck. Do we <b>back away</b> or <b>stay longer</b>?',true);
+    addLog('Touchdown at Nightingale. Contact timer running.');beep(110,.25,'sawtooth',.06,60);say(1,'Contact! Hold steady...');
+  }else if(ph==='touch'){
+    const ct=Math.min(6.5,simCt(e/1000));
+    if(Math.floor(ct)>F.lastSec){F.lastSec=Math.floor(ct);beep(300,.05,'square',.03);}
+    $('#ct').textContent=ct.toFixed(1);{const left=Math.max(0,6.5-ct);$('#left').textContent=left.toFixed(1);const L=$('#limit');L.className='limit'+(left<=1?' hot':left<=3?' mid':'');}$('#mass').textContent=tierAt(ct).short;$('#ctbar').style.width=(ct/7*100)+'%';
+    if(ct>=5.5&&!F.warned){F.warned=true;[0,160,320].forEach(d=>setTimeout(()=>beep(900,.1,'square',.05),d));$('#away').classList.add('warn');
+      setAlert('<b>ONBOARD SYSTEM WARNING:</b> Less than 1 second left before the 6.5 s limit! The NASA spacecraft backed away at 6 s. <b>BACK AWAY NOW!</b>',true);addLog('Warning: the 6.5 s limit is almost here. Back away now!');say(3,'Back away! We are running out of time!');}
+    {const T=tierAt(ct);const mm=$('#mass');
+      if(T.k===4&&!F.maxWarn&&ct<6.5){F.maxWarn=true;mm.classList.add('max');beep(1000,.12,'square',.05);setTimeout(()=>beep(1250,.15,'square',.05),140);
+        setAlert('<b>ONBOARD SYSTEM: MAXIMUM SAMPLE REACHED (121.6 g)!</b> You cannot collect more. <b>BACK AWAY NOW</b> before the 6.5 s limit!',true);addLog('Maximum sample weight reached. Back away now!');say(3,'Maximum sample! Get us out of here!');}
+      const L2=Math.max(0,6.5-ct);$('#mini').textContent='TIME LEFT '+L2.toFixed(1)+' s  |  SAMPLE: '+T.short;}
+    if(ct>=6.5)gotStuck(!F.stayed);
+  }else if(ph==='away'&&e>=DUR.away){finish();}
+  else if(ph==='stuck'&&e>=DUR.stuck){finish();}
+  else if(ph==='home'&&e>=3000){setPhase('drop');setAlert('<b>MISSION CONTROL:</b> Capsule released! Parachutes are open over the landing site.');addLog('Capsule released. Parachutes open.');say(2,'Look at that parachute!');}
+  else if(ph==='drop'&&e>=3800){setPhase('lab');stepUI(5);
+    if(F.outcome==='stuck'){setAlert('<b>MISSION CONTROL:</b> The Laboratory is waiting for a capsule that never left Bennu...',true);addLog('The Laboratory received no capsule.');say(3,'Nothing arrived...');}
+    else{setAlert('<b>MISSION CONTROL:</b> The Laboratory has the capsule. Opening it now...');addLog('The Laboratory received the capsule.');say(1,'Opening the capsule!');}}
+  else if(ph==='lab'&&e>=(F.outcome==='stuck'?2800:5200)){showResult();}
+}
+function retreat(freed){
+  $('#ctrlTitle').textContent='MISSION CONTROL';
+  setPhase('away');stepUI(3);$('#decide').hidden=true;
+  F.fuel=Math.max(0,F.fuel-(freed?3:2));puff(120,102,14);
+  F.freed=!!freed;beep(300,.6,'sawtooth',.04,1000);
+  const T0=tierAt(F.ct),T=freed?TIERS[Math.max(0,T0.k-1)]:T0;F.tier=T;F.mass=T.g||0;
+  F.timing=F.ct<1?'early':(items.includes('arm')&&T.k===1?'small':'window');
+  F.outcome=T.k<=0?'empty':(T.k===1?'small':'success');
+  addLog(F.timing==='early'?`Timing: backed away before the nitrogen gas burst (${F.ct.toFixed(1)} s, before 1 s).`:`Timing: backed away at ${F.ct.toFixed(1)} s. Sample: ${T.label}. NASA backed away at 6 s.`);
+  setAlert(freed?'<b>MISSION CONTROL:</b> The Extra Fuel Module saved the day! Spare propellant freed the probe (1 extra fuel point used), but some sample was lost on the way out.':`<b>MISSION CONTROL:</b> Backing away at ${F.ct.toFixed(1)} seconds of contact. Thrusters firing.`);
+  addLog(freed?'Extra Fuel Module: spare propellant freed the stuck probe. It used 3 fuel points (1 extra) and cost one weight level.':'Back away used 2 fuel points.');say(5,freed?'Spare fuel to the rescue!':'Thrusters firing!');render();
+}
+function gotStuck(noAnswer){
+  $('#ctrlTitle').textContent='MISSION CONTROL';
+  F.choice=noAnswer?null:'stay';
+  if(items.includes('fuel')){F.ct=6.5;addLog(noAnswer?'The probe stayed too long and sank into the surface.':'Player chose to stay longer. The probe sank into the surface.');retreat(true);return;}
+  if(noAnswer)F.ct=6.5;
+  beep(180,.7,'sawtooth',.06,50);setPhase('stuck');stepUI(3);$('#decide').hidden=true;F.outcome='stuck';F.timing=F.choice==='stay'?'stay':'late';puff(120,102,16);
+  setAlert(noAnswer?'<b>MISSION CONTROL:</b> No answer in time. The probe stayed too long and sank into the loose surface!':'<b>MISSION CONTROL:</b> Staying longer was risky. The probe is stuck in the loose surface!',true);
+  addLog(noAnswer?'Timing: no decision by 6.5 s. The probe stayed too long and is stuck.':'Timing: chose to stay longer. The probe is stuck.');say(3,'Uh oh... we are stuck!');
+}
+function finish(){
+  setPhase('report');stepUI(4);$('#notify').hidden=false;
+  if(F.outcome==='stuck')setAlert('<b>MISSION CONTROL:</b> The probe cannot move. Report the problem to Mission Control.',true);
+  else setAlert(`<b>MISSION CONTROL:</b> The probe is clear of Bennu (fuel left: ${F.fuel}). Notify Mission Control so the capsule can come home.`);
+  addLog('Waiting for the player to notify Mission Control.');
+}
+$('#notify').addEventListener('click',()=>{if(F.phase!=='report')return;beep(700,.08);$('#notify').hidden=true;addLog('Player notified Mission Control.');
+  if(F.outcome==='stuck'){setPhase('lab');stepUI(5);setAlert('<b>MISSION CONTROL:</b> Message received. The Laboratory is checking for a capsule...',true);}
+  else{setPhase('home');setAlert('<b>MISSION CONTROL:</b> Message received! The capsule is on its way home.');say(0,'Heading home!');}});
+function showResult(){
+  setPhase('result');stepUI(6);mode='flight';
+  conf=[...Array(40)].map((_,i)=>({x:(i*29)%240,y:(i*47)%135,vy:.5+(i%4)*.25,k:i*7,c:['#ffdf00','#7be8ff','#ff9a8a','#7be8a0','#fff'][i%5]}));
+  $('#ctrlPanel').hidden=true;$('#resultPanel').hidden=false;$('#tag').textContent='STEP 3 OF 3 - RESULT';
+  jingle(F.outcome==='success'?[523,659,784,1047]:[392,330,262],F.outcome==='success'?140:220);
+  const ok=F.outcome==='success',arm=items.includes('arm'),ct=F.ct.toFixed(1),T=F.tier||TIERS[0],mg=T.label;
+  const rate=T.k>=4?'EXCELLENT':T.k===3?'GREAT':'GOOD';
+  const b=$('#badge');b.className='badge '+(ok?'ok':'bad');
+  b.textContent=ok?'MISSION SUCCESS - '+rate+': '+T.short:(F.outcome==='stuck'?'MISSION FAILED: PROBE STUCK':(F.outcome==='small'?'MISSION FAILED: SAMPLE TOO SMALL':'MISSION FAILED: EMPTY CAPSULE'));
+  let why;
+  if(F.freed)why=`The probe stayed too long and sank into the loose surface, but the Extra Fuel Module's spare propellant freed it once. `+(arm?`The escape cost one weight level, so your sample is ${mg} (${T.cap}).`:`Without the Sampling Arm, the capsule is empty.`);
+  else if(ok)why=`The Sampling Arm collected rock at Nightingale. The nitrogen gas burst came 1 s after contact, and you held contact until ${ct} s (NASA's spacecraft backed away at 6 s). Your sample: ${mg} (${T.cap}). The longer you hold safely, the more rock you collect.`;
+  else if(F.outcome==='stuck')why=(F.choice==='stay'?'You chose to stay longer. ':'You did not back away by 6.5 seconds. ')+'The probe sank into the loose surface and got stuck, so no capsule came home. NASA fired its thrusters at 6 s, while the spacecraft was still sinking.';
+  else if(!arm)why=`The capsule arrived empty because the probe did not carry the Sampling Arm, so it could not pick up any rock.`+(F.timing==='early'?` You also backed away at ${ct} s, before the nitrogen gas burst.`:'');
+  else if(F.outcome==='small')why=`You backed away at ${ct} s and collected ${mg}, below the 60 g NASA needed. Hold contact longer after the nitrogen burst to collect more, but not past 6.5 s.`;
+  else why=`The capsule arrived empty. You backed away at ${ct} s, before the nitrogen gas burst that stirs up the rock. In NASA's real sequence the burst came 1 s after contact.`;
+  $('#why').textContent=why;
+  $('#rCred').textContent=BUDGET-total();$('#rFuel').textContent=F.fuel;
+  $('#rCt').textContent=ct+' s';$('#rMass').textContent=T.short;$('#rMassCap').textContent=T.cap;
+  $('#rItems').textContent=items.length?items.map(id=>PARTS.find(p=>p.id===id).name).join(' + '):'None';
+  $('#cap').hidden=false;
+  addLog('Mission result: '+b.textContent);
+  say(ok?5:3,ok?'We did it! The sample is in the lab!':'Next time we will do better. Press Play again!');
+  $('#resultPanel').scrollIntoView&&$('#resultPanel').scrollIntoView({block:'nearest'});
+}
+function playAgain(){
+  $('#count').hidden=true;F.goSent=false;F.goDone=false;F.goT0=null;$('#goBox').hidden=true;$('#sendGo').disabled=false;$('#sigWrap').hidden=true;$('#sigTimer').textContent='18:30';$('#ctrlTitle').textContent='MISSION CONTROL';
+  items=[];F.phase='idle';F.dust=[];mode='bench';
+  $('#probe').hidden=false;fcv.hidden=true;$('#cap').hidden=true;
+  $('#resultPanel').hidden=true;$('#ctrlPanel').hidden=true;$('#benchPanel').hidden=false;
+  $('#tag').textContent='STEP 1 OF 3 - ASSEMBLY';$('#fuelLbl').textContent='Fuel at launch';
+  msg('');say(5,'New mission! You have 100 credits again.');
+}
+$('#again').addEventListener('click',playAgain);
+$('#launch').addEventListener('click',startFlight);
+const contactNow=()=>Math.min(6.5,simCt((performance.now()-F.t0)*SP('touch')/1000));
+$('#away').addEventListener('click',()=>{if(F.phase!=='touch'||F.choice==='away')return;
+  F.choice='away';F.ct=contactNow();addLog(`Player chose: back away at ${F.ct.toFixed(1)} s.`);retreat();});
+$('#stay').addEventListener('click',()=>{if(F.phase!=='touch'||F.stayed)return;
+  F.stayed=true;const c=contactNow();$('#stay').disabled=true;$('#stay').textContent='Holding...';
+  addLog(`Player chose: stay longer (${c.toFixed(1)} s). Back away is still available until 6.5 s.`);
+  setAlert('<b>ONBOARD SYSTEM:</b> Holding contact. You can still <b>BACK AWAY</b> before 6.5 s. After that, the probe gets stuck.',true);say(3,'Holding... watch the clock!');});
+
+
+/* ================= MISSION 2 v2: LUNAR HEDGEHOG - Helium-3 Survey ================= */
+const M2_CREDIT='';   // e.g. 'Mission 2 concept: Name'
+const START={credits:100,cap:720,max:3,fuel:5,energy:6,margin:100}, HEAVY=525, RESERVE=2;
+const EQ=[
+ {id:'shield',n:'Radiation Shield',cr:26,kg:240,col:'#4ade80',fx:'Cuts the safety-margin loss in the radiation alert from 28 to 8 points.',ic:["x...xx...x",".x..xx..x.","..x.xx.x..","....xx....","xxxxxxxxxx","xxxxxxxxxx","....xx....","..x.xx.x..",".x..xx..x.","x...xx...x"]},
+ {id:'nav',n:'Descent Navigator',cr:37,kg:145,col:'#f472b6',fx:'Saves 1 fuel unit on the descent and avoids the extra safety-margin loss at the target site.',ic:ICON.nav},
+ {id:'prop',n:'Extra Propellant',cr:35,kg:340,col:'#ffb020',fx:'Adds 2 fuel units. The mass penalty still applies.',ic:ICON.fuel},
+ {id:'batt',n:'Battery Module',cr:32,kg:185,col:'#facc15',fx:'Adds 3 energy units.',ic:["......xx..",".....xx...","....xx....","...xx.....","..xxxxxx..","....xx....","...xx.....","..xx......",".xx.......","xx........"]},
+ {id:'reg',n:'Regolith Analyzer',cr:34,kg:205,col:'#38bdf8',fx:'Lets you analyze and seal a sample on site for 2 energy units.',ic:["...xxxx...","....xx....","....xx....","...xxxx...","..xx..xx..",".xx....xx.",".x.xxxx.x.",".x.xxxx.x.",".xx....xx.","..xxxxxx.."]},
+ {id:'buf',n:'Data Buffer',cr:18,kg:95,col:'#a78bfa',fx:'Cuts the energy needed to save the full flyby record from 3 units to 1.',ic:[".x.x.x.x..","xxxxxxxxxx",".x......x.","xx.xxxx.xx",".x.x..x.x.","xx.x..x.xx",".x.xxxx.x.","xx......xx","xxxxxxxxxx",".x.x.x.x.."]}
+];
+const L={
+ art:['Artemis II launch update','https://www.nasa.gov/blogs/missions/2026/04/01/artemis-ii-flight-update-perigee-raise-maneuver-complete-nasa-to-hold-press-conference/'],
+ guide:['NASA Design and Develop Science Missions','https://www.nasa.gov/wp-content/uploads/2025/04/250323-design-and-develop-science-mission.pdf'],
+ crew:['NASA Orion crew systems and radiation shelter','https://www.nasa.gov/reference/crew-systems/'],
+ day6:['NASA Artemis II Day 6 lunar flyby','https://www.nasa.gov/blogs/missions/2026/04/06/artemis-ii-flight-day-6-lunar-flyby-updates/'],
+ kit:['Artemis II press kit','https://www.nasa.gov/artemis-ii-press-kit/'],
+ hls:['NASA Human Landing Systems','https://www.nasa.gov/reference/human-landing-systems-2/'],
+ a11:['Apollo 11 Mission Overview','https://www.nasa.gov/missions/apollo/apollo-11-mission-overview/'],
+ ntrs:['Concentrations of Volatiles in the Lunar Regolith, table 1','https://ntrs.nasa.gov/api/citations/20130012694/downloads/20130012694.pdf#page=3'],
+ hist:['NASA History of Lunar Exploration','https://science.nasa.gov/solar-system/moon/history-of-lunar-exploration/']
+};
+const lk=a=>a.map(k=>`<a href="${L[k][1]}" target="_blank" rel="noopener">${L[k][0]}</a>`).join(' &middot; ');
+/* NASA evidence and game assumptions, one per phase */
+const PH=[
+ {n:'Launch checks',cap:'LAUNCH CHECKS',
+  intro:'A pressure sensor shows a fictional mismatch before launch. Decide how to verify it. Your choice is recorded before the mission moves on.',
+  learn:'Teaches the cost of verifying versus relying on a redundant system.',
+  real:'Artemis II launched on the Space Launch System rocket with the Orion spacecraft aboard.',
+  game:'The pressure-sensor mismatch, the energy cost and the safety-margin points are fictional.',src:['art']},
+ {n:'Radiation alert',cap:'RADIATION ALERT',
+  intro:'A fictional radiation alert sounds during the trip to the Moon. Choose how the crew responds.',
+  learn:'Shows that protecting the crew costs a resource, and that equipment can change that trade-off.',
+  real:'Orion has a radiation assessor that warns the crew to take shelter. In the shelter procedure the crew uses stowage bags already on board as a barrier during a solar particle event.',
+  game:'The game represents exposure with a fictional safety margin. It does not estimate radiation dose.',src:['crew']},
+ {n:'Far-side flyby',cap:'FAR-SIDE FLYBY',
+  intro:'The Moon is about to block the direct radio link with Earth. Decide what to store before the signal is lost.',
+  learn:'Only what was saved on board can be sent after contact returns.',
+  real:'On April 6, 2026, the body of the Moon blocked direct radio contact with Orion for about 40 minutes during the Artemis II flyby. The press kit says the crew would photograph and observe the far side and share the observations with scientists after contact returned.',
+  game:'The energy costs of storing data are fictional. The countdown compresses about 40 minutes into 2.4 seconds.',src:['day6','kit']},
+ {n:'Powered descent',cap:'POWERED DESCENT',
+  intro:'Orion stays in lunar orbit. The crew moves to a separate lunar lander. Choose where to go, and check the fuel forecast first: the lander must keep 2 units for the climb back to orbit.',
+  learn:'The same fuel supply pays for the descent and the ascent, so a good landing plan can still leave too little to return.',
+  real:'Artemis II flew around the Moon and did not land. In NASA’s Artemis landing architecture, a separate lunar lander takes the crew from orbit to the surface and back, while Orion carries them to the Moon and home. Apollo 11 used a powered descent to reach the surface.',
+  game:'The two landing sites, the fuel costs and the safety-margin rules are fictional.',src:['hls','a11']},
+ {n:'Helium-3 survey',cap:'HELIUM-3 SURVEY',
+  intro:'The instruments show a fictional preliminary soil reading. Choose what evidence to keep.',
+  learn:'A signal tells you where to look. A sealed sample can support a conclusion.',
+  real:'A report archived by NASA’s Technical Reports Server lists helium-3 in its table 1 at about 4.2 ng/g (plus or minus 3.4) as the average of Apollo soils, citing Fegley and Swindle (1993). This is a historical reference.',
+  game:'The site, the reading and the result of this fictional mission are the game’s own and do not predict real concentrations.',src:['ntrs']},
+ {n:'Return and analysis',cap:'RETURN AND ANALYSIS',
+  intro:'Time to leave the surface. The climb to orbit uses the fuel reserve.',
+  learn:'Returning the evidence is an engineering goal. The laboratory analysis is the “user” segment of a science mission.',
+  real:'In the Artemis architecture the lander returns the crew to orbit and Orion carries them to Earth. Apollo lunar samples were returned to Earth for scientific study.',
+  game:'The game compresses the ascent, the orbital rendezvous and the trip home into one step. The 2-unit ascent reserve is a game rule.',src:['hls','hist']}
+];
+const NASA_DOC=[
+ ['Artemis II launched on the SLS rocket with Orion aboard.','Pressure alert, energy and margin points are fictional.'],
+ ['Orion has a radiation monitor and a shelter procedure using stowed materials.','Exposure is a fictional safety margin, not a dose.'],
+ ['On April 6, 2026, the Moon blocked direct radio contact for about 40 minutes (the press kit gives 30 to 50 minutes depending on launch date).','Compressed to 2.4 seconds; storage costs are fictional.'],
+ ['Artemis uses a separate lunar lander. Orion does not land. Apollo 11 used powered descent.','Artemis II only flew around the Moon. The landing is fictional.'],
+ ['Apollo soils average about 4.2 ng/g (plus or minus 3.4) of helium-3 in the cited table (Fegley and Swindle, 1993).','The game site and sample are fictional.'],
+ ['The lander returns crew to orbit, Orion returns them to Earth, and Apollo samples were studied on Earth.','Ascent, rendezvous and trip are one game step.']
+];
+const M2={on:false,step:'equip',eq:[],gear:[],credits:100,fuel:0,energy:0,margin:100,ph:0,sub:'choose',res:[],data:'none',sent:null,site:null,sample:'none',reading:false,ret:null,out:null,bt0:0,at:-999,prev:null,say:'',conf:[]};
+const m2c=$('#m2cv').getContext('2d');m2c.imageSmoothingEnabled=false;
+const ES=id=>EQ.find(e=>e.id===id);
+const sumOf=(a,k)=>a.reduce((s,id)=>s+ES(id)[k],0);
+const has=id=>M2.gear.includes(id);
+function plan(list){const kg=sumOf(list,'kg'),cr=sumOf(list,'cr'),heavy=kg>HEAVY;
+  return{kg,cr,heavy,fuel:START.fuel+(list.includes('prop')?2:0)-(heavy?1:0),energy:START.energy+(list.includes('batt')?3:0)};}
+function blockReason(id){
+  if(M2.eq.includes(id))return null;const e=ES(id);
+  if(M2.eq.length>=START.max)return 'Blocked: the lander carries only '+START.max+' parts.';
+  const cr=sumOf(M2.eq,'cr')+e.cr,kg=sumOf(M2.eq,'kg')+e.kg;
+  if(cr>START.credits)return 'Blocked: over budget by '+(cr-START.credits)+' credits. Remove a part to switch.';
+  if(kg>START.cap)return 'Blocked: over the payload limit by '+(kg-START.cap)+' kg. Remove a part to switch.';
+  return null;}
+const sg=n=>n;
+function m2Reset(){
+  Object.assign(M2,{step:'equip',eq:[],gear:[],credits:100,fuel:0,energy:0,margin:100,ph:0,sub:'choose',res:Array(6).fill(null),data:'none',sent:null,site:null,sample:'none',reading:false,ret:null,out:null,bt0:0,at:-999,conf:[],reported:false});
+  M2.say='Hello, Commander! Pick up to three parts, or start with the basic setup. Watch the credits, the payload and the fuel forecast.';
+  try{M2.prev=JSON.parse(localStorage.getItem('sc-m2v2-prev')||'null')||M2.prev;}catch(e){}
+}
+function icon9(cv,pat,col){const c=cv.getContext('2d');c.clearRect(0,0,10,10);c.fillStyle=col;pat.forEach((r,y)=>{for(let x=0;x<10;x++)if(r[x]==='x')c.fillRect(x,y,1,1);});}
+function m2Say(s){M2.say=s;const b=$('#m2bub');if(b)b.textContent='Hedgehog: '+s;}
+const stat=(l,v,x)=>`<div class="stat"><small>${l}</small><strong>${v}</strong>${x||''}</div>`;
+function m2Stats(){
+  const S=$('#m2stats');
+  if(M2.step==='equip'){const p=plan(M2.eq);
+    S.innerHTML=stat('Credits left',START.credits-p.cr)+stat('Payload',p.kg+'/'+START.cap+' kg')+stat('Parts',M2.eq.length+'/'+START.max)+stat('Fuel at launch',p.fuel)+stat('Energy',p.energy);}
+  else{const mc=M2.margin>70?'#7be8a0':M2.margin>40?'#ffdf00':'#ff6b6b';
+    S.innerHTML=stat('Fuel',M2.fuel)+stat('Energy',M2.energy)+stat('Safety margin',M2.margin+'%','<div class="ibar"><i style="width:'+M2.margin+'%;background:'+mc+'"></i></div>')
+      +stat('Flyby data',M2.sent?({full:'Full record sent',summary:'Summary sent',none:'None sent'})[M2.sent]:({none:'None stored',summary:'Summary stored',full:'Full record stored'})[M2.data])
+      +stat('Site',M2.site?({target:'Target',backup:'Backup',orbit:'Orbit only'})[M2.site]:'Not chosen')
+      +stat('Sample',({none:M2.reading?'Preliminary reading':'None',lab:'Sealed',analyzed:'Analyzed + sealed'})[M2.sample]);}
+}
+function introOf(i){if(M2.site==='orbit'){if(i===4)return 'The crew stayed in lunar orbit, so there is no surface to sample and no soil reading. Continue to the return.';if(i===5)return 'The crew returns from lunar orbit with no surface evidence. Finish the mission.';}return PH[i].intro;}
+/* ---- options for each phase ---- */
+const needEn=n=>M2.energy<n?'Blocked: not enough energy ('+M2.energy+' left, '+n+' needed).':null;
+function opts(i){
+  const nav=has('nav'),buf=has('buf'),shield=has('shield'),reg=has('reg');
+  if(i===0)return[
+    {id:'full',label:'Run the full ground check',cost:'Cost: 1 energy. Safety margin preserved.',dis:needEn(1),
+      run(){M2.energy-=1;return{eff:'Energy -1. Safety margin stays at '+M2.margin+'%.',why:'The full check confirmed the sensor and kept the margin intact, at the price of one energy unit.',say:'Full check done. We are clear for launch!',good:true};}},
+    {id:'backup',label:'Verify on the backup channel',cost:'Cost: 0 energy. Safety margin -10.',dis:null,
+      run(){M2.margin=Math.max(0,M2.margin-10);return{eff:'No energy used. Safety margin -10, now '+M2.margin+'%.',why:'The backup channel saved energy, but a redundant path is less certain, so the margin dropped.',say:'Backup channel says OK. Let us hope it is right.',good:false};}}];
+  if(i===1){const loss=shield?8:28;return[
+    {id:'shelter',label:'Use Orion’s shelter',cost:'Cost: 1 energy. Safety margin preserved.',dis:needEn(1),
+      run(){M2.energy-=1;return{eff:'Energy -1. Safety margin stays at '+M2.margin+'%.',why:'Sheltering protects the crew and costs energy. The margin is untouched.',say:'Everyone into the shelter!',good:true};}},
+    {id:'keep',label:'Keep instruments running',cost:'Cost: 0 energy. Safety margin -'+loss+(shield?' (Radiation Shield installed).':'.'),dis:null,
+      run(){M2.margin=Math.max(0,M2.margin-loss);return{eff:'No energy used. Safety margin -'+loss+', now '+M2.margin+'%.'+(shield?' The Radiation Shield cut the loss from 28 to 8.':''),why:'Keeping instruments on saves energy but exposes the crew. The game turns that into a margin loss.',say:shield?'The shield took most of it.':'Ouch. That cost us margin.',good:false};}}];}
+  if(i===2){const cf=buf?1:3;return[
+    {id:'full',label:'Save the full observation record',cost:'Cost: '+cf+' energy'+(buf?' (Data Buffer installed)':'')+'. Stores images and notes.',dis:needEn(cf),
+      run(){M2.energy-=cf;M2.data='full';return{eff:'Energy -'+cf+'. Full record stored on board.',why:'Everything saved on board can be sent when contact returns.',say:'Recording everything we see.',good:true};}},
+    {id:'summary',label:'Save a short summary',cost:'Cost: 1 energy. Stores only the summary.',dis:needEn(1),
+      run(){M2.energy-=1;M2.data='summary';return{eff:'Energy -1. Only a short summary stored.',why:'A summary is cheap, but the details are lost for good.',say:'Summary saved.',good:false};}},
+    {id:'none',label:'Keep the reserve for the survey',cost:'Cost: 0 energy. Nothing stored: nothing to transmit.',dis:null,
+      run(){M2.data='none';return{eff:'Energy kept. No flyby record stored.',why:'Saving energy now means there is no flyby record to send later.',say:'Saving every unit for the surface.',good:false};}}];}
+  if(i===3){const cT=nav?3:4,cB=nav?2:3;
+    const fc=c=>{const left=M2.fuel-c;return 'Fuel -'+c+', '+left+' left. '+(left>=RESERVE?'Enough for the 2-unit ascent.':'NOT enough for the 2-unit ascent!');};
+    return[
+    {id:'target',label:'Land at the target site',cost:fc(cT)+(nav?'':' Safety margin -10 more (no navigator).')+' Needs a margin of at least 65%.',
+      dis:M2.margin<65?'Blocked: the target site needs a safety margin of at least 65% (now '+M2.margin+'%).':(M2.fuel<cT?'Blocked: needs '+cT+' fuel, only '+M2.fuel+' left.':null),
+      run(){M2.fuel-=cT;if(!nav)M2.margin=Math.max(0,M2.margin-10);M2.site='target';return{eff:'Fuel -'+cT+', now '+M2.fuel+'.'+(nav?' The Descent Navigator avoided the extra margin loss and saved 1 fuel.':' Safety margin -10, now '+M2.margin+'%.'),why:'The lander reached the primary site.'+(M2.fuel<RESERVE?' Warning: only '+M2.fuel+' fuel left, below the ascent reserve of '+RESERVE+'.':' Enough fuel is left for the climb back to orbit.'),say:M2.fuel<RESERVE?'We landed, but the tank is nearly empty...':'Touchdown at the target site!',good:M2.fuel>=RESERVE};}},
+    {id:'backup',label:'Land at the backup site',cost:fc(cB)+' The sample would come from the backup site.',
+      dis:M2.fuel<cB?'Blocked: needs '+cB+' fuel, only '+M2.fuel+' left.':null,
+      run(){M2.fuel-=cB;M2.site='backup';return{eff:'Fuel -'+cB+', now '+M2.fuel+'.',why:'The lander reached the alternate site.'+(M2.fuel<RESERVE?' Warning: only '+M2.fuel+' fuel left, below the ascent reserve of '+RESERVE+'.':' Enough fuel is left for the climb.'),say:M2.fuel<RESERVE?'Landed, but the tank is nearly empty...':'Touchdown at the backup site.',good:M2.fuel>=RESERVE};}},
+    {id:'orbit',label:'End the survey in orbit',cost:'Cost: no fuel. The surface survey stays incomplete.',dis:null,
+      run(){M2.site='orbit';return{eff:'No landing. Fuel kept at '+M2.fuel+'.',why:'The crew avoided a risky descent, and the surface survey stays incomplete.',say:'We stay safe in orbit.',good:false};}}];}
+  if(i===4){
+    if(M2.site==='orbit')return[{id:'none',label:'Continue',cost:'No surface survey is possible from orbit.',dis:null,
+      run(){M2.sample='none';M2.reading=false;return{eff:'No sample and no reading.',why:'The crew stayed in orbit, so there was no surface evidence to collect.',say:'No surface data to collect.',good:false};}}];
+    return[
+    {id:'analyze',label:'Analyze and seal a sample',cost:'Cost: 2 energy. Needs the Regolith Analyzer. Gives an onboard measurement and a sealed sample.',dis:!reg?'Blocked: needs the Regolith Analyzer.':needEn(2),
+      run(){M2.energy-=2;M2.sample='analyzed';return{eff:'Energy -2. Onboard measurement taken and a physical sample sealed.',why:'You have a measurement and a sample that the Earth laboratory can confirm.',say:'Sample analyzed and sealed!',good:true};}},
+    {id:'seal',label:'Seal a sample for the Earth lab',cost:'Cost: 1 energy. Confirmation waits for the laboratory on Earth.',dis:needEn(1),
+      run(){M2.energy-=1;M2.sample='lab';return{eff:'Energy -1. A physical sample is sealed. Confirmation is pending until it reaches the laboratory.',why:'A sealed sample can support a conclusion once the laboratory confirms it.',say:'Sample sealed for the lab.',good:true};}},
+    {id:'prelim',label:'Record only the preliminary reading',cost:'Cost: 0 energy. No physical sample to confirm.',dis:null,
+      run(){M2.sample='none';M2.reading=true;return{eff:'Energy kept. A preliminary reading is recorded. Helium-3 is NOT confirmed.',why:'A reading shows where to look, but without a sample nothing can be confirmed.',say:'We have a hint, but nothing confirmed yet.',good:false};}}];}
+  if(i===5){
+    if(M2.site==='orbit')return[{id:'end',label:'Finish the mission',cost:'The crew returns from orbit without surface evidence.',dis:null,
+      run(){M2.ret='orbit';return{eff:'Return from orbit. No sample reached the laboratory.',why:'Staying in orbit avoided the descent risk but left the survey incomplete.',say:'Heading home from orbit.',good:false};}}];
+    if(M2.fuel>=RESERVE)return[{id:'climb',label:'Spend the reserve: climb, meet Orion, return to Earth',cost:'Cost: '+RESERVE+' fuel. You have '+M2.fuel+'.',dis:null,
+      run(){M2.fuel-=RESERVE;M2.ret='ok';return{eff:'Fuel -'+RESERVE+', now '+M2.fuel+'. The lander reached Orion and the crew flew home.',why:M2.sample!=='none'?'The sealed sample reached the Earth laboratory.':'The crew returned, but there was no physical sample to analyze.',say:'Docked with Orion. Next stop: Earth!',good:true};}}];
+    return[{id:'try',label:'Attempt the ascent',cost:'WARNING: only '+M2.fuel+' fuel, below the '+RESERVE+'-unit reserve. The return will be incomplete.',dis:null,
+      run(){M2.ret='noFuel';return{eff:'Not enough fuel to reach orbit. Return incomplete.',why:'Even if a sample was collected, no sample was delivered to the laboratory.',say:'We do not have enough fuel...',good:false};}}];}
+  return[];
+}
+/* ---- outcome ---- */
+function m2Outcome(){
+  if(M2.site==='orbit')return{k:'incomplete',why:'You ended the survey in orbit, so no surface sample was collected. That decision in phase 4 prevented the sample delivery.'};
+  if(M2.ret==='noFuel')return{k:'incomplete',why:'Only '+M2.fuel+' fuel unit'+(M2.fuel===1?'':'s')+' remained after landing, below the '+RESERVE+'-unit ascent reserve. The landing choice in phase 4 prevented the sample from reaching the laboratory.'};
+  const miss=[];
+  if(M2.sent!=='full')miss.push(M2.sent==='summary'?'only a short summary of the flyby was sent':'no flyby data was sent');
+  if(M2.site!=='target')miss.push('the sample came from the backup site');
+  if(M2.sample==='none')miss.push('only a preliminary reading came back, so helium-3 remains unconfirmed');
+  return miss.length?{k:'partial',why:'The crew returned, but '+miss.join('; ')+'.'}:{k:'complete',why:'The full flyby record was transmitted, a sample from the target site was delivered and confirmed in the laboratory.'};
+}
+const sampleText=()=>{
+  if(M2.site==='orbit')return 'No sample: the crew stayed in orbit.';
+  if(M2.ret==='noFuel')return M2.sample!=='none'?'Sample collected on the surface but NOT delivered to the laboratory.':'No sample delivered. Helium-3 not confirmed.';
+  if(M2.sample==='analyzed')return 'Sealed sample returned. Onboard measurement plus Earth-laboratory confirmation (fictional analysis).';
+  if(M2.sample==='lab')return 'Sealed sample returned and confirmed in the Earth laboratory (fictional analysis).';
+  return M2.reading?'Preliminary reading only. Helium-3 is NOT confirmed: there is no physical sample.':'No sample.';
+};
+/* ---- rendering ---- */
+function evidence(i){const p=PH[i];return `<details class="ev"><summary>NASA evidence and game assumptions</summary><p><b>Learning goal.</b> ${p.learn}</p><p><b>NASA evidence.</b> ${p.real}</p><p><b>Game assumption.</b> ${p.game}</p><p class="src">${lk(p.src)}</p></details>`;}
+function m2Render(){
+  const R=$('#m2right'),i=M2.ph;
+  $('#m2bub').textContent='Hedgehog: '+M2.say;m2Stats();
+  if(M2.step==='equip'){
+    $('#m2tag').textContent='MISSION 2 - STEP 1 OF 3 - EQUIPMENT';$('#m2cap').textContent='EQUIPMENT BENCH';
+    const p=plan(M2.eq);
+    R.innerHTML=`<div class="box bench m2pn"><h2>EQUIPMENT BENCH - up to 3 parts</h2>
+      <div class="rule"><b>THE RULES:</b> You have <b>100 credits</b>, a <b>720 kg</b> payload limit and <b>3 parts</b> at most. Payload above <b>525 kg</b> burns <b>1 extra fuel unit</b> at launch. The lander must keep <b>2 fuel units</b> for the climb back to orbit. Starting with no parts is allowed.</div>
+      <div id="m2cards">${EQ.map(e=>{const on=M2.eq.includes(e.id),why=blockReason(e.id);
+        return `<button class="card${on?' on':''}${why?' lock':''}" type="button" data-k="${e.id}" ${why?'disabled':''} aria-pressed="${on}"><canvas width="10" height="10" data-ic="${e.id}"></canvas><div><h3>${e.n} - <span class="cost">${e.cr} cr</span></h3><p>${e.fx}</p><div class="after ${why?'neg':'pos'}">Mass ${e.kg} kg. ${on?'Equipped. Remove to get '+e.cr+' credits back.':(why||'If equipped: '+(START.credits-p.cr-e.cr)+' credits and '+(START.cap-p.kg-e.kg)+' kg left.')}</div></div></button>`;}).join('')}</div>
+      <div class="kv"><div><small>Fuel at launch (forecast)</small><strong>${p.fuel}</strong><em>${p.heavy?'payload over 525 kg: -1 fuel':'base 5'+(M2.eq.includes('prop')?' +2':'')}</em></div><div><small>Energy (forecast)</small><strong>${p.energy}</strong><em>${M2.eq.includes('batt')?'base 6 +3 Battery':'base 6'}</em></div></div>
+      <p class="note">${p.heavy?'Heavy load: 1 extra fuel unit is used at launch. ':''}Fuel left after launch must still cover descent (2 to 4 units) and the 2-unit ascent.</p>
+      <p class="foot">Source: ${lk(['guide'])}. The guide describes launch, space, ground and user segments. Budget and equipment numbers are from the simulation.</p>
+      <div class="btns" style="margin-top:10px"><button class="act sec" id="m2basic" type="button">Start with the basic setup</button><button class="act" id="m2conf" type="button" ${M2.eq.length?'':'disabled'}>Confirm parts and launch</button></div></div>`;
+    R.querySelectorAll('canvas[data-ic]').forEach(cv=>icon9(cv,ES(cv.dataset.ic).ic,ES(cv.dataset.ic).col));
+  }else if(M2.step==='phase'){
+    const p=PH[i],r=M2.res[i];
+    $('#m2tag').textContent='MISSION 2 - STEP 2 OF 3 - PHASE '+(i+1)+' OF 6';$('#m2cap').textContent=p.cap;
+    let body='';
+    if(M2.sub==='choose'){
+      body=opts(i).map((o,k)=>`<button class="act sec opt" data-c="${k}" type="button" ${o.dis?'disabled':''}><b>${o.label}</b><br><span class="oc">${o.dis||o.cost}</span></button>`).join('');
+    }else if(M2.sub==='blackout'){
+      body=`<p class="auto"><b>Direct link blocked.</b></p><div class="sigtimer" id="m2timer">40:00</div><p class="signote">Artemis II communications blackout: about 40 minutes. Playback accelerated.</p>
+        <button class="act sec opt" type="button" disabled><b>Transmit saved observations</b><br><span class="oc">Blocked: the direct link is unavailable until 00:00.</span></button>`;
+    }else if(M2.sub==='transmit'){
+      body=`<p class="auto"><b>Signal recovered.</b> Contact with Earth is back.</p><button class="act go opt" data-a="tx" type="button"><b>${M2.data!=='none'?'Transmit saved observations':'Continue without flyby data'}</b><br><span class="oc">${M2.data==='full'?'Sends the full record.':M2.data==='summary'?'Sends only the summary.':'Nothing was stored, so nothing can be sent.'}</span></button>`;
+    }else{
+      const last=i===5;
+      body=`<div class="m2res${r&&r.good?'':' bad'}"><b class="k">${r.label}</b><br>${r.eff}<br><br>${r.why}</div>${evidence(i)}
+        <div class="btns" style="margin-top:10px"><button class="act" data-a="next" type="button">${last?'See the final report':'Next phase &#9654;'}</button></div>`;
+    }
+    R.innerHTML=`<div class="box ctrl m2pn"><h2>PHASE ${i+1} OF 6 - ${p.n.toUpperCase()}</h2>
+      <ol class="pips2">${PH.map((q,k)=>`<li class="${k===i?'active':''} ${M2.res[k]?(M2.res[k].good?'ok':'bad'):''}">${k+1}</li>`).join('')}</ol>
+      <p class="auto">${introOf(i)}</p><div class="alert">${body}</div>
+      <p class="foot" style="margin-top:8px">Equipment: ${M2.gear.length?M2.gear.map(id=>ES(id).n).join(', '):'basic setup (no parts)'}.</p></div>`;
+  }else{
+    const o=M2.out,sc=o.k==='complete'?100:o.k==='partial'?60:20;
+    $('#m2tag').textContent='MISSION 2 - STEP 3 OF 3 - RESULT';
+    $('#m2cap').textContent=o.k==='incomplete'?'TRY AGAIN, AGENTS!':'MISSION COMPLETE!';
+    const title={complete:'SURVEY COMPLETE',partial:'PARTIAL SURVEY',incomplete:'SURVEY INCOMPLETE'}[o.k];
+    const flyby=({full:'Full record transmitted',summary:'Short summary transmitted (flyby record incomplete)',none:'No flyby data transmitted'})[M2.sent||'none'];
+    const site=({target:'Target site',backup:'Backup site',orbit:'None (stayed in orbit)'})[M2.site||'orbit'];
+    R.innerHTML=`<div class="box res m2pn"><h2>YOUR MISSION</h2><div class="badge ${o.k==='incomplete'?'bad':'ok'}">${title}</div><p>${o.why}</p>
+      <ul class="chips" style="grid-template-columns:1fr"><li><b>Equipment</b>${M2.gear.length?M2.gear.map(id=>ES(id).n).join(', '):'Basic setup (no parts)'}</li><li><b>Flyby data sent</b>${flyby}</li><li><b>Collection site</b>${site}</li><li><b>Sample state</b>${sampleText()}</li><li><b>Left at the end</b>Fuel ${M2.fuel} &middot; Energy ${M2.energy} &middot; Safety margin ${M2.margin}%</li></ul>
+      <h2 style="margin-top:14px;color:var(--warn)">Consequences by phase</h2>
+      ${PH.map((p,k)=>M2.res[k]?`<div class="m2res${M2.res[k].good?'':' bad'}" style="margin-bottom:8px"><b class="k">${k+1}. ${p.n}: ${M2.res[k].label}</b><br>${M2.res[k].eff}${evidence(k)}</div>`:`<div class="m2res bad" style="margin-bottom:8px"><b class="k">${k+1}. ${p.n}</b><br>Not reached.</div>`).join('')}
+      <h2 style="margin-top:14px;color:var(--ok)">What NASA documented</h2>
+      <ul class="facts">${NASA_DOC.map(d=>`<li><b>NASA:</b> ${d[0]}<br><b>Game:</b> ${d[1]}</li>`).join('')}</ul>
+      <p class="src"><b>Sources</b><br>${Object.keys(L).map(k=>`<a href="${L[k][1]}" target="_blank" rel="noopener">${L[k][0]}</a>`).join('<br>')}</p>
+      <p class="note">${M2.prev?'Previous attempt: '+M2.prev.k+'. Now: '+o.k+'.':'This is your first attempt. Play again to compare.'}</p>
+      <div class="btns"><button class="act" data-a="again" type="button">Play again</button><button class="act go" data-a="outro" type="button">Continue</button><button class="act sec" data-a="menu" type="button">Back to start</button></div></div>`;
+    if(!M2.reported){M2.reported=true;M2.prev={k:o.k};try{localStorage.setItem('sc-m2v2-prev',JSON.stringify(M2.prev));}catch(x){}
+      jingle(o.k==='incomplete'?[392,330,262]:[523,659,784,1047],o.k==='incomplete'?220:140);
+      m2Say(o.k==='complete'?'We did it! A confirmed Helium-3 sample is in the lab!':o.k==='partial'?(M2.sample==='none'?'We came home, but helium-3 is not confirmed yet.':'We came home with a sample, but a goal is missing.'):'No sample reached the lab this time. Press Play again!');
+      M2.conf=[...Array(40)].map((_,k)=>({x:(k*29)%240,y:(k*47)%135,vy:.5+(k%4)*.25,k:k*7,c:['#ffdf00','#7be8ff','#ff9a8a','#7be8a0','#fff'][k%5]}));}
+  }
+  $('#m2credit').textContent=M2_CREDIT;
+}
+function m2Pick(k){
+  const i=M2.ph,o=opts(i)[k];if(!o||o.dis)return;
+  M2.at=t;const r=o.run();r.label=o.label;M2.res[i]=r;m2Say(r.say);
+  if(r.good)jingle([523,659,784],110);else beep(220,.25,'sawtooth',.05,100);
+  if(i===2){M2.sub='blackout';M2.bt0=performance.now();M2.res[i]=null;M2._fly=r;}else M2.sub='done';
+  m2Render();
+}
+$('#m2right').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b||b.disabled)return;
+  if(b.dataset.k){const id=b.dataset.k,p=M2.eq.indexOf(id);
+    if(p>-1){M2.eq.splice(p,1);beep(420,.06);M2.say='Removing '+ES(id).n+'. Credits are back.';}
+    else if(!blockReason(id)){M2.eq.push(id);beep(680,.07,'square',.04,900);M2.say=ES(id).n+' installed!';}
+    m2Render();return;}
+  if(b.id==='m2basic'){M2.eq=[];m2Begin();return;}
+  if(b.id==='m2conf'){m2Begin();return;}
+  if(b.dataset.c!=null){m2Pick(+b.dataset.c);return;}
+  const a=b.dataset.a;
+  if(a==='tx'){M2.sent=M2.data;const r=M2._fly;r.eff+=' '+(M2.data==='full'?'The full record was transmitted after contact returned.':M2.data==='summary'?'Only the summary was transmitted.':'Nothing was transmitted: no flyby data was stored.');M2.res[2]=r;M2.sub='done';m2Say(M2.data==='none'?'Nothing to send...':'Observations sent to Earth!');beep(800,.1,'square',.05,1200);m2Render();}
+  else if(a==='next'){beep(700,.08);if(M2.ph===5){M2.out=m2Outcome();M2.step='report';M2.reported=false;m2Render();}else{M2.ph++;M2.sub='choose';m2Say(introOf(M2.ph));m2Render();}}
+  else if(a==='again'){m2Reset();beep(660,.08);m2Render();}
+  else if(a==='outro'){showOutro();}
+  else if(a==='menu'){m2Menu();}
+});
+function m2Begin(){const p=plan(M2.eq);M2.gear=M2.eq.slice();M2.credits=START.credits-p.cr;M2.fuel=p.fuel;M2.energy=p.energy;M2.margin=START.margin;M2.step='phase';M2.ph=0;M2.sub='choose';M2.at=-999;
+  beep(660,.1,'square',.05,990);M2.say='Everything is ready. Launch fuel: '+p.fuel+(p.heavy?' (the heavy payload used 1 extra unit)':'')+'. '+PH[0].intro;m2Render();}
+function startM2(){
+  if(!TITLE_ON)return;TITLE_ON=false;beep(660,.1,'square',.05,990);
+  const T=$('#title');T.classList.add('fade');setTimeout(()=>{T.hidden=true;},650);
+  m2Reset();M2.on=true;$('#m1wrap').hidden=true;$('#m2wrap').hidden=false;m2Render();window.scrollTo(0,0);
+}
+function m2Menu(){
+  M2.on=false;$('#m2wrap').hidden=true;$('#m1wrap').hidden=false;who=pilot;
+  TITLE_ON=true;const T=$('#title');T.hidden=false;void T.offsetWidth;T.classList.remove('fade');$('#playBtn').focus();
+}
+
+/* ---- Mission 2 pixel scenes ---- */
+function m2Stars(x,n){for(let k=0;k<n;k++){x.fillStyle=((t+k*7)%90<4)?'#ffe9a8':(k%5?'#fff':'#8fa8ff');x.fillRect((k*53)%240,(k*29)%105,1,1);}}
+function earth2(x,cx,cy,r){disc(x,cx,cy,r+1,'#7cc4f0');disc(x,cx,cy,r,'#2f6fd6');disc(x,cx-Math.round(r*.3),cy-Math.round(r*.2),Math.round(r*.3),'#3aa655');disc(x,cx+Math.round(r*.35),cy+Math.round(r*.3),Math.round(r*.22),'#3aa655');}
+function moon2(x,cx,cy,r){disc(x,cx,cy,r,'#9a9aa7');disc(x,cx-Math.round(r*.3),cy-Math.round(r*.25),Math.round(r*.2),'#6f7388');disc(x,cx+Math.round(r*.35),cy+Math.round(r*.2),Math.round(r*.14),'#6f7388');disc(x,cx+Math.round(r*.05),cy+Math.round(r*.55),Math.round(r*.1),'#6f7388');}
+function mini(x,cx,cy,s){const R=(a,b,w,h,c)=>{x.fillStyle=c;x.fillRect(Math.round(cx+a*s),Math.round(cy+b*s),w*s,h*s);};
+  R(-14,-2,9,4,'#1d4ed8');R(-14,-2,9,1,'#7cc4f0');R(5,-2,9,4,'#1d4ed8');R(5,-2,9,1,'#7cc4f0');R(-5,-1,2,2,'#c9c6d6');R(3,-1,2,2,'#c9c6d6');
+  R(-3,-4,6,8,'#f4f1ea');R(-3,-4,6,1,'#fff');R(-3,1,6,1,'#2f7fe0');R(-1,-6,2,2,'#c9c6d6');R(-3,4,6,1,'#4a4e66');}
+function lander(x,cx,cy,s,fl){const R=(a,b,w,h,c)=>{x.fillStyle=c;x.fillRect(Math.round(cx+a*s),Math.round(cy+b*s),w*s,h*s);};
+  R(-4,-5,8,6,'#d8dbe8');R(-4,-5,8,1,'#fff');R(-2,-3,4,2,'#7cc4f0');R(-6,1,12,2,'#8a8ea3');R(-6,3,2,4,'#6f7388');R(4,3,2,4,'#6f7388');R(-8,7,5,1,'#6f7388');R(3,7,5,1,'#6f7388');
+  if(fl){R(-1,3,2,3+((t>>2)&1),'#ffdf00');R(0,6,1,2,'#ff9a1f');}}
+function probe2(x,ox,oy,o){const si=items,sw=who;items=[];who=1;drawProbe(x,ox,oy,o||{});items=si;who=sw;}
+function dash(x,x1,y1,x2,y2,col,n){for(let k=0;k<=n;k++){if(((k+(t>>3))%2))continue;const q=k/n;x.fillStyle=col;x.fillRect(Math.round(x1+(x2-x1)*q),Math.round(y1+(y2-y1)*q),2,2);}}
+const mSurf=px=>Math.round(250-Math.sqrt(142*142-(px-120)*(px-120)));
+function m2s0(x){
+  x.fillStyle='#232866';x.fillRect(0,0,240,135);x.fillStyle='#2f3590';for(let k=0;k<240;k+=24)x.fillRect(k,0,1,100);
+  x.fillStyle='#3b3128';x.fillRect(0,106,240,29);x.fillStyle='#a98b6a';x.fillRect(0,106,240,2);
+  clock(x,24,22);flagMini(x,196,10,24,17);
+  probe2(x,60,28+Math.round(Math.sin(t*.05)),{feet:true});
+  (M2.step==='equip'?M2.eq:M2.gear).forEach((id,j)=>{x.fillStyle='#1b1f3b';x.fillRect(4+j*22,92,20,18);x.fillStyle=ES(id).col;x.fillRect(6+j*22,94,16,14);x.fillStyle='rgba(0,0,0,.3)';x.fillRect(6+j*22,100,16,2);});
+  const fr=Math.floor(t/14)%4;agent(x,1,'idle',fr,180,74,2);agent(x,5,'idle',(fr+2)%4,218,90,1);return null;
+}
+function m2s1(x){
+  const p=(t%420)/420,up=p<.45?0:Math.pow((p-.45)/.55,2)*170;
+  m2Stars(x,60);
+  x.fillStyle='#3aa655';x.fillRect(0,118,240,17);x.fillStyle='#2b8a43';x.fillRect(0,118,240,2);
+  x.fillStyle='#8a8ea3';x.fillRect(190,40,6,78);for(let y=44;y<118;y+=10){x.fillStyle='#6f7388';x.fillRect(190,y,6,2);}x.fillRect(176,56,14,3);
+  if(M2.sub==='choose'&&t%40<20)disc(x,193,36,3,'#ffb454');
+  probe2(x,60,40-Math.round(up),{feet:p<.5,flame:p>.4});
+  if(p>.4&&p<.85){for(let k=0;k<8;k++){disc(x,70+k*14,114,Math.round(3+(p-.4)*16),k%2?'#d8dbe8':'#a9adbf');}}
+  return 'PRESSURE SENSOR MISMATCH';
+}
+function m2s2(x){
+  m2Stars(x,60);earth2(x,26,108,34);
+  [[46,'#7be8a0'],[62,'#ffb454']].forEach(([r,c])=>{for(let k=0;k<48;k++){const a=-1.7+k*.045;if((k+(t>>3))%2)continue;x.fillStyle=c;x.fillRect(Math.round(26+Math.cos(a)*r),Math.round(108+Math.sin(a)*r),2,2);}});
+  disc(x,214,24,20,'#ffdf00');disc(x,214,24,14,'#fff3a0');
+  for(let k=0;k<8;k++){const a=k*.785+t*.02;x.fillStyle='#ffdf00';x.fillRect(Math.round(214+Math.cos(a)*27),Math.round(24+Math.sin(a)*27),3,3);}
+  const hit=M2.sub==='done'&&M2.res[1]&&!M2.res[1].good;
+  for(let k=0;k<12;k++){const q=((t*.012)+k/12)%1;x.fillStyle=hit?'#ff6b6b':'#ffdf00';x.fillRect(Math.round(214-(214-124)*q),Math.round(24+(60-24)*q),2,2);}
+  mini(x,120,64,2);
+  if(has('shield')||(M2.sub==='done'&&M2.res[1]&&M2.res[1].good)){for(let k=0;k<20;k++){const a=-1.2+k*.12;if((k+(t>>2))%3===0)continue;x.fillStyle='#7be8ff';x.fillRect(Math.round(120+Math.cos(a)*30),Math.round(64+Math.sin(a)*24),2,2);}}
+  return 'RADIATION ALERT';
+}
+function m2s3(x){
+  m2Stars(x,60);earth2(x,30,32,14);
+  const black=M2.sub==='blackout',a=black?Math.PI*1.5:t*.015,px=130+Math.cos(a)*84,py=80+Math.sin(a)*14,front=Math.sin(a)>=0,behind=!front&&Math.abs(px-130)<50;
+  if(!front)mini(x,px,py,2);
+  moon2(x,130,80,40);
+  if(front)mini(x,px,py,2);
+  if(!behind){dash(x,40,32,px,py-6,'#7be8ff',16);}
+  else{for(let k=-5;k<=5;k++){x.fillStyle='#ff4d4d';x.fillRect(130+k*2,80+k*2,2,2);x.fillRect(130+k*2,80-k*2,2,2);}}
+  return behind?'DIRECT LINK BLOCKED':'DIRECT LINK OPEN';
+}
+function m2s4(x){
+  m2Stars(x,60);
+  disc(x,120,250,142,'#8a8ea3');for(let k=0;k<240;k+=2){const y=mSurf(k);x.fillStyle='#c4c8dc';x.fillRect(k,y,2,2);}
+  disc(x,30,132,6,'#6f7388');disc(x,200,128,5,'#6f7388');
+  // site markers
+  x.fillStyle='#d8dbe8';x.fillRect(70,100,1,16);flagMini(x,71,100,12,8);
+  x.fillStyle='#d8dbe8';x.fillRect(170,100,1,16);x.fillStyle='#2f7fe0';x.fillRect(171,100,12,8);
+  mini(x,120,14,2);
+  const pr=Math.min(1,(t-M2.at)/170),q=1-Math.pow(1-pr,2),dec=M2.sub==='done'&&M2.site&&M2.site!=='orbit';
+  if(M2.sub==='choose'||M2.site==='orbit'){lander(x,120,36+Math.round(Math.sin(t*.06)),2,false);}
+  else if(dec){const lx=M2.site==='target'?70:170,cx=120+(lx-120)*q,cy=36+(103-36)*q;lander(x,cx,cy,2,pr<1);if(pr>=1&&pr<1.3){}}
+  return 'ORION IN ORBIT - LANDER DESCENDS';
+}
+function m2s5(x){
+  m2Stars(x,50);
+  if(M2.site==='orbit'){moon2(x,120,84,44);mini(x,120,24,2);return 'NO SURFACE SURVEY';}
+  earth2(x,36,28,14);
+  x.fillStyle='#8a8ea3';x.fillRect(0,100,240,35);x.fillStyle='#c4c8dc';x.fillRect(0,100,240,2);
+  disc(x,28,126,6,'#6f7388');disc(x,214,122,5,'#6f7388');disc(x,60,118,4,'#6f7388');
+  lander(x,150,79,3,false);
+  x.fillStyle='#d8dbe8';x.fillRect(76,58,1,42);if(M2.site==='target')flagMini(x,77,58,16,11);else{x.fillStyle='#2f7fe0';x.fillRect(77,58,16,11);}
+  const ok=M2.sub==='done'&&M2.res[4]&&M2.res[4].good,hx=18+Math.round(Math.abs(Math.sin(t*.012))*44);
+  agent(x,1,ok?'wave':'walk',Math.floor(t/10)%4,hx,70,2);
+  for(let k=0;k<6;k++){if(((t>>4)+k)%3===0){x.fillStyle='#7be8ff';const bx=14+k*13,by=108+(k%2)*8;x.fillRect(bx,by,2,2);x.fillRect(bx-1,by+1,1,1);x.fillRect(bx+2,by+1,1,1);}}
+  if(M2.sample!=='none'&&M2.sub==='done'){x.fillStyle='#1b1f3b';x.fillRect(48,92,10,8);x.fillStyle='#7be8a0';x.fillRect(50,94,6,4);}
+  return M2.site==='target'?'TARGET SITE':'BACKUP SITE';
+}
+function m2s6(x){
+  m2Stars(x,50);
+  const done=M2.sub==='done',pr=done?Math.min(1,(t-M2.at)/220):0;
+  if(M2.site==='orbit'){moon2(x,120,84,44);mini(x,150,26,2);return 'HEADING HOME FROM ORBIT';}
+  earth2(x,36,28,14);
+  mini(x,200,22,2);
+  x.fillStyle='#8a8ea3';x.fillRect(0,100,240,35);x.fillStyle='#c4c8dc';x.fillRect(0,100,240,2);
+  disc(x,28,126,6,'#6f7388');disc(x,214,122,5,'#6f7388');
+  if(!done){lander(x,150,79,3,false);return 'THE 2-UNIT ASCENT RESERVE';}
+  if(M2.ret==='ok'){const cy=79-Math.round(pr*56),cx=150+Math.round(pr*38);lander(x,cx,cy,pr>.6?2:3,pr<1);return pr<1?'CLIMBING TO ORION':'DOCKED - HEADING HOME';}
+  const lift=Math.round(Math.sin(Math.min(1,pr*2)*Math.PI)*16);lander(x,150,79-lift,3,pr<.5);
+  if(pr<.6){for(let k=0;k<5;k++)disc(x,130+k*10,100,3,'#c4c8dc');}
+  if(t%20<10){x.fillStyle='rgba(255,60,80,.2)';x.fillRect(0,0,240,135);}
+  return 'NOT ENOUGH FUEL';
+}
+function m2Result(x){
+  const fail=M2.out&&M2.out.k==='incomplete';
+  m2Stars(x,60);earth2(x,40,40,22);
+  flagMini(x,178,14,40,28);x.fillStyle='#d8dbe8';x.fillRect(176,12,2,34);
+  x.fillStyle='#8a8ea3';x.fillRect(0,116,240,19);x.fillStyle='#c4c8dc';x.fillRect(0,116,240,2);
+  const fr=Math.floor(t/10)%4;
+  for(let k=0;k<6;k++)agent(x,k,fail?'idle':'wave',(fr+k)%4,10+k*37,84+(fail?0:-Math.abs(Math.round(Math.sin((t+k*9)*.18)*6))),2);
+  if(M2.out&&M2.out.k==='complete')M2.conf.forEach(c=>{c.y+=c.vy;c.x+=Math.sin((t+c.k)*.1)*.6;if(c.y>135)c.y=-4;x.fillStyle=c.c;x.fillRect(Math.round(c.x),Math.round(c.y),2,3);});
+  return null;
+}
+const M2S=[m2s1,m2s2,m2s3,m2s4,m2s5,m2s6];
+function m2Draw(){
+  const x=m2c;
+  x.fillStyle='#0b0d2a';x.fillRect(-4,0,248,135);
+  let cap=null;
+  if(M2.step==='report')m2Result(x);else if(M2.step==='equip')m2s0(x);else cap=M2S[M2.ph](x);
+  if(M2.sub==='blackout'&&M2.step==='phase'){
+    const p=Math.min(1,(performance.now()-M2.bt0)/2400),rem=Math.round(2400*(1-p)),el=$('#m2timer');
+    if(el)el.textContent=String(Math.floor(rem/60)).padStart(2,'0')+':'+String(rem%60).padStart(2,'0');
+    if(p>=1){M2.sub='transmit';m2Say('Signal recovered! Time to transmit.');m2Render();}
+  }
+  const ce=$('#m2cap');if(cap&&M2.step==='phase'&&ce.textContent!==cap)ce.textContent=cap;
+}
+$('#playBtn2').addEventListener('click',startM2);
+
+render();requestAnimationFrame(draw);
+window.addEventListener('keydown',e=>{if(TITLE_ON||M2.on||mode!=='bench')return;if(e.key==='1')toggle('arm');if(e.key==='2')toggle('fuel');if(e.key==='3')toggle('nav');});
+function startFromTitle(){if(!TITLE_ON)return;TITLE_ON=false;beep(660,.1,'square',.05,990);
+  const T=$('#title');T.classList.add('fade');setTimeout(()=>{T.hidden=true;},650);}
+$('#playBtn').addEventListener('click',startFromTitle);
+function showOutro(){jingle([392,330,262,330,392,523],170);$('#outro').hidden=false;$('#outro').style.animation='none';void $('#outro').offsetWidth;$('#outro').style.animation='';$('#outroBack').focus();}
+$('#nextBtn').addEventListener('click',showOutro);
+function backToStart(){$('#outro').hidden=true;if(M2.on){M2.on=false;$('#m2wrap').hidden=true;$('#m1wrap').hidden=false;who=pilot;m2Reset();}playAgain();TITLE_ON=true;const T=$('#title');T.hidden=false;void T.offsetWidth;T.classList.remove('fade');$('#playBtn').focus();}
+$('#outroBack').addEventListener('click',backToStart);
+window.addEventListener('keydown',e=>{if(TITLE_ON&&(e.key==='Enter'||e.key===' ')){e.preventDefault();startFromTitle();}
+  else if(!$('#outro').hidden&&e.key==='Escape')backToStart();},true);
+setTimeout(()=>{try{$('#playBtn').focus({preventScroll:true});}catch(e){}},50);
+window.SC={m2:M2,speed:1,get stepsDone(){return[...$('#steps').children].filter(l=>l.className==='done').length;},get flight(){return{phase:F.phase,fuel:F.fuel,goSent:F.goSent,outcome:F.outcome,choice:F.choice,timing:F.timing,mass:F.mass,tier:F.tier&&F.tier.short,pilot:F.pilot};},get items(){return items.slice();},get credits(){return BUDGET-total();},get fuel(){return fuel();},toggle};
+})();
+</script>
+
+</body></html>
